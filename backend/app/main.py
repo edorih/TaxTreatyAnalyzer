@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -27,3 +31,16 @@ app.include_router(scenarios.router, prefix="/api/scenarios", tags=["scenarios"]
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+
+@app.get("/{path:path}", include_in_schema=False)
+async def serve_frontend(path: str) -> FileResponse:
+    requested_file = FRONTEND_DIST / path
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+    return FileResponse(FRONTEND_DIST / "index.html")

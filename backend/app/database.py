@@ -10,11 +10,18 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+def normalize_database_url(database_url: str) -> str:
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return database_url
+
+
+engine = create_async_engine(normalize_database_url(settings.database_url), pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
-
