@@ -1,6 +1,7 @@
 from app.calculations.types import (
     AdvisorFlag,
     CountryTaxResult,
+    IncomeTaxRow,
     IncomeTreatment,
     RateComponent,
     SourceReference,
@@ -93,6 +94,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     social_charges = sum(component.amount_usd for component in social_charge_breakdown)
     total_income_tax = progressive_tax + flat_income_tax
     taxable_income = sum(treatment.france_taxable_amount_usd for treatment in treatments)
+    income_tax_rows = build_income_tax_rows(treatments, progressive_base, progressive_tax)
 
     components = [
         TaxComponent(
@@ -127,6 +129,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         components=components,
         social_charge_breakdown=social_charge_breakdown,
         income_treatments=treatments,
+        income_tax_rows=income_tax_rows,
         advisor_flags=flags,
         sources=FRANCE_SOURCES,
         assumptions=[
@@ -316,6 +319,43 @@ def calculate_social_charge_breakdown(taxable_base: float) -> list[RateComponent
         )
         for code, (label, rate) in FRANCE_SOCIAL_CHARGE_COMPONENT_RATES_2026.items()
     ]
+
+
+def build_income_tax_rows(
+    treatments: list[IncomeTreatment],
+    progressive_base: float,
+    progressive_tax: float,
+) -> list[IncomeTaxRow]:
+    rows: list[IncomeTaxRow] = []
+    for treatment in treatments:
+        income_tax = treatment.france_income_tax_usd
+        notes = list(treatment.notes)
+        if treatment.treaty_position in {"france_residence_taxable_progressive", "france_taxable_uncertain_progressive"}:
+            income_tax = allocate_progressive_tax(
+                treatment.france_taxable_amount_usd,
+                progressive_base,
+                progressive_tax,
+            )
+            notes.append("Progressive French tax allocated proportionally across progressively taxed income lines.")
+
+        rows.append(
+            IncomeTaxRow(
+                income_line_id=treatment.income_line_id,
+                income_type=treatment.income_type,
+                annual_amount_usd=treatment.annual_amount_usd,
+                france_taxable_amount_usd=treatment.france_taxable_amount_usd,
+                france_income_tax_usd=round(income_tax, 2),
+                france_social_charges_usd=treatment.france_social_charges_usd,
+                notes=notes,
+            )
+        )
+    return rows
+
+
+def allocate_progressive_tax(taxable_amount: float, progressive_base: float, progressive_tax: float) -> float:
+    if taxable_amount <= 0 or progressive_base <= 0 or progressive_tax <= 0:
+        return 0
+    return progressive_tax * (taxable_amount / progressive_base)
 
 
 def income_treatment(

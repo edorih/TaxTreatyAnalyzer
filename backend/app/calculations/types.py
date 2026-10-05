@@ -64,6 +64,20 @@ class IncomeTreatment:
 
 
 @dataclass(frozen=True)
+class IncomeTaxRow:
+    income_line_id: str
+    income_type: str
+    annual_amount_usd: float
+    france_taxable_amount_usd: float
+    france_income_tax_usd: float
+    france_social_charges_usd: float
+    notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class CountryTaxResult:
     country: str
     tax_year: int
@@ -73,6 +87,7 @@ class CountryTaxResult:
     components: list[TaxComponent]
     social_charge_breakdown: list[RateComponent]
     income_treatments: list[IncomeTreatment]
+    income_tax_rows: list[IncomeTaxRow]
     advisor_flags: list[AdvisorFlag]
     sources: list[SourceReference]
     assumptions: list[str]
@@ -88,6 +103,7 @@ class CountryTaxResult:
             "components": [component.to_dict() for component in self.components],
             "social_charge_breakdown": [component.to_dict() for component in self.social_charge_breakdown],
             "income_treatments": [treatment.to_dict() for treatment in self.income_treatments],
+            "income_tax_rows": [row.to_dict() for row in self.income_tax_rows],
             "advisor_flags": [flag.to_dict() for flag in self.advisor_flags],
             "sources": [source.to_dict() for source in self.sources],
             "assumptions": self.assumptions,

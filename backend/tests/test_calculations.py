@@ -75,6 +75,14 @@ def test_france_module_separates_income_tax_and_social_charges():
     assert result["country"] == "france"
     assert result["total_taxable_income_usd"] == 72000
     assert result["estimated_social_charges_usd"] == 2232
+    assert sum(row["annual_amount_usd"] for row in result["income_tax_rows"]) == 96000
+    assert sum(row["france_taxable_amount_usd"] for row in result["income_tax_rows"]) == 72000
+    assert round(sum(row["france_income_tax_usd"] for row in result["income_tax_rows"]), 2) == result[
+        "estimated_income_tax_usd"
+    ]
+    assert round(sum(row["france_social_charges_usd"] for row in result["income_tax_rows"]), 2) == result[
+        "estimated_social_charges_usd"
+    ]
     assert result["social_charge_breakdown"] == [
         {"code": "csg", "label": "CSG", "rate": 0.106, "amount_usd": 1272.0, "notes": ["Applied to income lines mapped to French social charges in v1."]},
         {"code": "crds", "label": "CRDS", "rate": 0.005, "amount_usd": 60.0, "notes": ["Applied to income lines mapped to French social charges in v1."]},

@@ -16,19 +16,28 @@ type IncomeLine = {
   ftcBasket: FtcBasket;
 };
 
+type IncomeTaxRow = {
+  income_line_id: string;
+  income_type: string;
+  annual_amount_usd: number;
+  france_taxable_amount_usd: number;
+  france_income_tax_usd: number;
+  france_social_charges_usd: number;
+  notes: string[];
+};
+
+type IncomeTreatment = IncomeTaxRow & {
+  treaty_position?: string;
+  ftc_basket?: string;
+  confidence?: string;
+};
+
 type CountryTaxResult = {
   estimated_income_tax_usd?: number;
   estimated_social_charges_usd?: number;
   total_taxable_income_usd?: number;
-  income_tax_rows?: Array<{
-    income_line_id: string;
-    income_type: string;
-    annual_amount_usd: number;
-    france_taxable_amount_usd: number;
-    france_income_tax_usd: number;
-    france_social_charges_usd: number;
-    notes: string[];
-  }>;
+  income_tax_rows?: IncomeTaxRow[];
+  income_treatments?: IncomeTreatment[];
   advisor_flags?: Array<{ code: string; severity: string; message: string; income_line_id?: string | null }>;
   social_charge_breakdown?: Array<{ code: string; label: string; rate: number; amount_usd: number }>;
   sources?: Array<{ label: string; url: string; notes: string }>;
@@ -72,6 +81,16 @@ const defaultFtcBasketByIncomeType: Record<string, FtcBasket> = {
   "Qualified 529 withdrawal for child": "not_applicable"
 };
 
+const socialChargeColumns = [
+  { key: "csg", label: "CSG", rate: 0.106 },
+  { key: "crds", label: "CRDS", rate: 0.005 },
+  { key: "social_levy", label: "Prelevement social", rate: 0 },
+  { key: "additional_contribution", label: "Contribution additionnelle", rate: 0 },
+  { key: "solidarity_levy", label: "Prelevement de solidarite", rate: 0.075 }
+];
+
+const modeledSocialChargeRate = socialChargeColumns.reduce((sum, column) => sum + column.rate, 0);
+
 const initialLines: IncomeLine[] = [
   {
     id: "income-1",
@@ -98,6 +117,35 @@ function formatUsd(value: number | undefined): string {
     currency: "USD",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function getIncomeRows(countryTax: CountryTaxResult): IncomeTaxRow[] {
+  if (countryTax.income_tax_rows && countryTax.income_tax_rows.length > 0) {
+    return countryTax.income_tax_rows;
+  }
+
+  return (countryTax.income_treatments ?? []).map((treatment) => ({
+    income_line_id: treatment.income_line_id,
+    income_type: treatment.income_type,
+    annual_amount_usd: treatment.annual_amount_usd,
+    france_taxable_amount_usd: treatment.france_taxable_amount_usd,
+    france_income_tax_usd: treatment.france_income_tax_usd,
+    france_social_charges_usd: treatment.france_social_charges_usd,
+    notes: treatment.notes ?? []
+  }));
+}
+
+function socialChargeComponentAmount(row: IncomeTaxRow, rate: number): number | null {
+  if (row.france_social_charges_usd <= 0 || rate <= 0 || modeledSocialChargeRate <= 0) {
+    return null;
+  }
+
+  return row.france_social_charges_usd * (rate / modeledSocialChargeRate);
+}
+
+function formatSocialChargeCell(row: IncomeTaxRow, rate: number): string {
+  const amount = socialChargeComponentAmount(row, rate);
+  return amount === null ? "N/A" : formatUsd(amount);
 }
 
 function App() {
@@ -448,7 +496,7 @@ function ResultsPage({
   onBack: () => void;
   onStartOver: () => void;
 }) {
-  const incomeRows = result.country_tax.income_tax_rows ?? [];
+  const incomeRows = getIncomeRows(result.country_tax);
   const rowTotals = incomeRows.reduce(
     (totals, row) => ({
       annualIncome: totals.annualIncome + row.annual_amount_usd,
@@ -521,20 +569,42 @@ function ResultsPage({
             </span>
           </div>
         </div>
-        <div className="detail-grid">
-          <section className="detail-panel" aria-labelledby="social-charges-heading">
-            <h2 id="social-charges-heading">French social charges</h2>
-            <div className="mini-table">
-              {(result.country_tax.social_charge_breakdown ?? []).map((component) => (
-                <div className="mini-row" key={component.code}>
-                  <span>{component.label}</span>
-                  <span>{(component.rate * 100).toFixed(1)}%</span>
-                  <strong>{formatUsd(component.amount_usd)}</strong>
-                </div>
+        <section className="detail-panel" aria-labelledby="social-charges-heading">
+          <h2 id="social-charges-heading">French social charges</h2>
+          <div className="social-charge-table" role="table" aria-label="French social charges by income type">
+            <div className="social-charge-row social-charge-head" role="row">
+              <span role="columnheader">Income type</span>
+              <span role="columnheader">Income value</span>
+              {socialChargeColumns.map((column) => (
+                <span role="columnheader" key={column.key}>
+                  {column.label}
+                </span>
               ))}
             </div>
-          </section>
+            {incomeRows.map((row) => (
+              <div className="social-charge-row" role="row" key={`${row.income_line_id}-social-charges`}>
+                <span>{row.income_type}</span>
+                <strong>{formatUsd(row.annual_amount_usd)}</strong>
+                {socialChargeColumns.map((column) => (
+                  <strong key={column.key}>{formatSocialChargeCell(row, column.rate)}</strong>
+                ))}
+              </div>
+            ))}
+            <div className="social-charge-row total-row" role="row">
+              <span>Total</span>
+              <strong>{formatUsd(rowTotals.annualIncome)}</strong>
+              {socialChargeColumns.map((column) => {
+                const total = incomeRows.reduce((sum, row) => {
+                  const amount = socialChargeComponentAmount(row, column.rate);
+                  return sum + (amount ?? 0);
+                }, 0);
+                return <strong key={column.key}>{column.rate > 0 ? formatUsd(total) : "N/A"}</strong>;
+              })}
+            </div>
+          </div>
+        </section>
 
+        <div className="detail-grid">
           <section className="detail-panel" aria-labelledby="advisor-flags-heading">
             <h2 id="advisor-flags-heading">Advisor-review flags</h2>
             <div className="flag-list">

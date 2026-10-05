@@ -349,7 +349,8 @@ select:disabled {
 }
 
 .summary-table,
-.income-results-table {
+.income-results-table,
+.social-charge-table {
   overflow-x: auto;
   border: 1px solid #d8dde7;
   border-radius: 8px;
@@ -413,7 +414,7 @@ select:disabled {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.8fr) minmax(360px, 1.2fr);
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -444,6 +445,40 @@ select:disabled {
 .mini-row strong {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.social-charge-row {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(120px, 0.75fr)
+    minmax(100px, 0.65fr)
+    minmax(100px, 0.65fr)
+    minmax(140px, 0.8fr)
+    minmax(170px, 0.9fr)
+    minmax(170px, 0.9fr);
+  gap: 10px;
+  min-width: 1040px;
+  padding: 9px 12px;
+  border-top: 1px solid #e8ebf0;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.social-charge-row:first-child {
+  border-top: 0;
+}
+
+.social-charge-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.social-charge-head {
+  color: #657187;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .flag-item {
