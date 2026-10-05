@@ -2,7 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
-
 DestinationCountry = Literal["france", "italy", "portugal"]
 FilingStatus = Literal[
     "single",
