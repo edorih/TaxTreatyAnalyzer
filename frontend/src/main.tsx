@@ -380,7 +380,7 @@ function InputsPage({
         {calculationError ? <p className="error-text">{calculationError}</p> : null}
         <button className="primary-button" type="button" onClick={onSubmit} disabled={isCalculating}>
           <Calculator size={16} aria-hidden="true" />
-          {isCalculating ? "Calculating" : "Submit estimate"}
+          {isCalculating ? "Calculating" : "Calculate tax estimates"}
         </button>
       </section>
     </>
@@ -475,4 +475,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>
 );
-
