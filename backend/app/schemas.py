@@ -9,7 +9,16 @@ FilingStatus = Literal[
     "married_filing_separately",
     "head_of_household",
 ]
-FtcBasket = Literal["passive", "general", "treaty_resourced", "foreign_branch", "gilti_951a", "lump_sum", "unknown"]
+FtcBasket = Literal[
+    "passive",
+    "general",
+    "treaty_resourced",
+    "foreign_branch",
+    "gilti_951a",
+    "lump_sum",
+    "not_applicable",
+    "unknown",
+]
 
 
 class AuthRequest(BaseModel):
@@ -60,4 +69,3 @@ class ScenarioRead(BaseModel):
     tax_year: int
     inputs: ScenarioInputs
     calculation_snapshot: dict
-

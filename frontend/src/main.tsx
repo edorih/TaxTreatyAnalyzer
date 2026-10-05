@@ -4,7 +4,7 @@ import { ArrowLeft, Calculator, Check, Plus, ShieldCheck } from "lucide-react";
 import "./styles.css";
 
 type DestinationCountry = "france" | "italy" | "portugal";
-type FtcBasket = "passive" | "general" | "treaty_resourced" | "unknown";
+type FtcBasket = "passive" | "general" | "treaty_resourced" | "not_applicable" | "unknown";
 type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
 type AppStep = "landing" | "inputs" | "results";
 
@@ -45,8 +45,23 @@ const incomeTypes = [
   "Brokerage dividends",
   "Long-term capital gains",
   "Rental income",
-  "529 withdrawal"
+  "Qualified 529 withdrawal for child"
 ];
+
+const defaultFtcBasketByIncomeType: Record<string, FtcBasket> = {
+  "US employer salary": "general",
+  "Local employer salary": "general",
+  "Self-employment": "general",
+  "401(k)": "general",
+  "Traditional IRA": "general",
+  "Roth IRA": "general",
+  Pension: "general",
+  "Social Security": "general",
+  "Brokerage dividends": "passive",
+  "Long-term capital gains": "passive",
+  "Rental income": "passive",
+  "Qualified 529 withdrawal for child": "not_applicable"
+};
 
 const initialLines: IncomeLine[] = [
   {
@@ -133,7 +148,7 @@ function App() {
         incomeType: "Traditional IRA",
         monthlyAmountUsd: 0,
         sourceCountry: "United States",
-        ftcBasket: "unknown"
+        ftcBasket: defaultFtcBasketByIncomeType["Traditional IRA"]
       }
     ]);
   }
@@ -337,7 +352,13 @@ function InputsPage({
                 <select
                   aria-label="Income type"
                   value={line.incomeType}
-                  onChange={(event) => onUpdateLine(line.id, { incomeType: event.target.value })}
+                  onChange={(event) => {
+                    const incomeType = event.target.value;
+                    onUpdateLine(line.id, {
+                      incomeType,
+                      ftcBasket: defaultFtcBasketByIncomeType[incomeType] ?? "unknown"
+                    });
+                  }}
                 >
                   {incomeTypes.map((type) => (
                     <option key={type} value={type}>
@@ -366,6 +387,7 @@ function InputsPage({
                   <option value="general">General</option>
                   <option value="passive">Passive</option>
                   <option value="treaty_resourced">Treaty-resourced</option>
+                  <option value="not_applicable">Not applicable</option>
                   <option value="unknown">Unknown</option>
                 </select>
               </div>

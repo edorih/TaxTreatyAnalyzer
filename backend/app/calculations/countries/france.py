@@ -265,16 +265,16 @@ def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[I
             ["Uses 2026 CSG, CRDS, and solidarity levy components as a conservative placeholder."],
         ), flags
 
-    if normalized_type == "529_withdrawal":
+    if normalized_type == "qualified_529_withdrawal_for_child":
         flags.append(
             AdvisorFlag(
-                code="france_529_review",
-                severity="high",
-                message="529 withdrawal treatment is not modeled for France.",
+                code="france_529_qualified_child_assumption",
+                severity="medium",
+                message="Qualified 529 child-beneficiary withdrawals are modeled as not taxable income in v1; confirm beneficiary and qualified-use facts.",
                 income_line_id=line.id,
             )
         )
-        return income_treatment(line, annual_amount, 0, 0, 0, "france_taxability_unknown", "unknown", "low"), flags
+        return income_treatment(line, annual_amount, 0, 0, 0, "qualified_529_child_not_taxable_v1", "not_applicable", "medium"), flags
 
     flags.append(
         AdvisorFlag(
