@@ -1,10 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Plus, Save, ShieldCheck } from "lucide-react";
+import { Calculator, Plus, ShieldCheck } from "lucide-react";
 import "./styles.css";
 
 type DestinationCountry = "france" | "italy" | "portugal";
 type FtcBasket = "passive" | "general" | "treaty_resourced" | "unknown";
+type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
 
 type IncomeLine = {
   id: string;
@@ -13,6 +14,22 @@ type IncomeLine = {
   sourceCountry: string;
   ftcBasket: FtcBasket;
 };
+
+type CountryTaxResult = {
+  country?: string;
+  status?: string;
+  estimated_income_tax_usd?: number;
+  estimated_social_charges_usd?: number;
+  total_taxable_income_usd?: number;
+  advisor_flags?: Array<{ code: string; severity: string; message: string }>;
+};
+
+type CalculationSnapshot = {
+  annual_income_usd: number;
+  country_tax: CountryTaxResult;
+};
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 const incomeTypes = [
   "US employer salary",
@@ -46,7 +63,10 @@ const initialLines: IncomeLine[] = [
   }
 ];
 
-function formatUsd(value: number): string {
+function formatUsd(value: number | undefined): string {
+  if (value === undefined || Number.isNaN(value)) {
+    return "Pending";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -54,16 +74,66 @@ function formatUsd(value: number): string {
   }).format(value);
 }
 
+function countryLabel(country: DestinationCountry): string {
+  return country[0].toUpperCase() + country.slice(1);
+}
+
 function App() {
   const [countryA, setCountryA] = React.useState<DestinationCountry>("france");
   const [countryB, setCountryB] = React.useState<DestinationCountry>("portugal");
+  const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
+  const [isTaxResident, setIsTaxResident] = React.useState(true);
   const [lines, setLines] = React.useState<IncomeLine[]>(initialLines);
+  const [resultA, setResultA] = React.useState<CalculationSnapshot | null>(null);
+  const [resultB, setResultB] = React.useState<CalculationSnapshot | null>(null);
+  const [isCalculating, setIsCalculating] = React.useState(false);
+  const [calculationError, setCalculationError] = React.useState<string | null>(null);
 
   const annualIncome = lines.reduce((sum, line) => sum + line.monthlyAmountUsd * 12, 0);
   const basketTotals = lines.reduce<Record<string, number>>((acc, line) => {
     acc[line.ftcBasket] = (acc[line.ftcBasket] ?? 0) + line.monthlyAmountUsd * 12;
     return acc;
   }, {});
+
+  async function calculateForCountry(country: DestinationCountry): Promise<CalculationSnapshot> {
+    const response = await fetch(`${apiBaseUrl}/calculate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        filing_status: filingStatus,
+        destination_country: country,
+        destination_tax_resident: isTaxResident,
+        deduction_mode: "standard",
+        income_lines: lines.map((line) => ({
+          id: line.id,
+          income_type: line.incomeType,
+          monthly_amount_usd: line.monthlyAmountUsd,
+          source_country: line.sourceCountry,
+          ftc_basket: line.ftcBasket
+        })),
+        deduction_lines: []
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Calculation failed for ${countryLabel(country)}`);
+    }
+    return response.json();
+  }
+
+  async function calculateComparison() {
+    setIsCalculating(true);
+    setCalculationError(null);
+    try {
+      const [nextResultA, nextResultB] = await Promise.all([calculateForCountry(countryA), calculateForCountry(countryB)]);
+      setResultA(nextResultA);
+      setResultB(nextResultB);
+    } catch (error) {
+      setCalculationError(error instanceof Error ? error.message : "Calculation failed");
+    } finally {
+      setIsCalculating(false);
+    }
+  }
 
   function addIncomeLine() {
     setLines((current) => [
@@ -82,6 +152,20 @@ function App() {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
   }
 
+  function countryCell(result: CalculationSnapshot | null, key: keyof CountryTaxResult): string {
+    if (!result) {
+      return "Run estimate";
+    }
+    if (result.country_tax.status === "country_module_not_implemented") {
+      return "Not implemented";
+    }
+    const value = result.country_tax[key];
+    return typeof value === "number" ? formatUsd(value) : "Pending";
+  }
+
+  const flagsA = resultA?.country_tax.advisor_flags?.length ?? 0;
+  const flagsB = resultB?.country_tax.advisor_flags?.length ?? 0;
+
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="scenario-title">
@@ -90,9 +174,9 @@ function App() {
             <p className="eyebrow">2026 exploratory estimate</p>
             <h1 id="scenario-title">Tax Treaty Analyzer</h1>
           </div>
-          <button className="secondary-button" type="button">
-            <Save size={16} aria-hidden="true" />
-            Save scenario
+          <button className="primary-button" type="button" onClick={calculateComparison} disabled={isCalculating}>
+            <Calculator size={16} aria-hidden="true" />
+            {isCalculating ? "Calculating" : "Calculate estimate"}
           </button>
         </header>
 
@@ -118,7 +202,7 @@ function App() {
               </label>
               <label>
                 Filing status
-                <select defaultValue="married_filing_jointly">
+                <select value={filingStatus} onChange={(event) => setFilingStatus(event.target.value as FilingStatus)}>
                   <option value="single">Single</option>
                   <option value="married_filing_jointly">Married filing jointly</option>
                   <option value="married_filing_separately">Married filing separately</option>
@@ -133,7 +217,7 @@ function App() {
               </label>
               <label>
                 Tax residency assumption
-                <select defaultValue="yes">
+                <select value={isTaxResident ? "yes" : "unsure"} onChange={(event) => setIsTaxResident(event.target.value === "yes")}>
                   <option value="yes">Tax resident in both compared countries</option>
                   <option value="unsure">Need advisor review</option>
                 </select>
@@ -202,17 +286,18 @@ function App() {
             <p className="eyebrow">Estimate summary</p>
             <h2 id="results-heading">Destination comparison</h2>
           </div>
+          {calculationError ? <p className="error-text">{calculationError}</p> : null}
           <div className="summary-table" role="table" aria-label="Tax estimate summary">
             <div className="summary-row summary-head" role="row">
               <span role="columnheader">Measure</span>
-              <span role="columnheader">{countryA[0].toUpperCase() + countryA.slice(1)}</span>
-              <span role="columnheader">{countryB[0].toUpperCase() + countryB.slice(1)}</span>
+              <span role="columnheader">{countryLabel(countryA)}</span>
+              <span role="columnheader">{countryLabel(countryB)}</span>
               <span role="columnheader">FTC notes</span>
             </div>
             <div className="summary-row" role="row">
               <span>Annual income modeled</span>
-              <strong>{formatUsd(annualIncome)}</strong>
-              <strong>{formatUsd(annualIncome)}</strong>
+              <strong>{formatUsd(resultA?.annual_income_usd ?? annualIncome)}</strong>
+              <strong>{formatUsd(resultB?.annual_income_usd ?? annualIncome)}</strong>
               <span>Basket-aware inputs captured</span>
             </div>
             <div className="summary-row" role="row">
@@ -228,22 +313,28 @@ function App() {
               <span>Texas only in MVP</span>
             </div>
             <div className="summary-row" role="row">
+              <span>Destination taxable income</span>
+              <strong>{countryCell(resultA, "total_taxable_income_usd")}</strong>
+              <strong>{countryCell(resultB, "total_taxable_income_usd")}</strong>
+              <span>Country-specific module result</span>
+            </div>
+            <div className="summary-row" role="row">
               <span>Destination income tax</span>
-              <strong>Pending {countryA} rules</strong>
-              <strong>Pending {countryB} rules</strong>
-              <span>Country-specific module required</span>
+              <strong>{countryCell(resultA, "estimated_income_tax_usd")}</strong>
+              <strong>{countryCell(resultB, "estimated_income_tax_usd")}</strong>
+              <span>France module active; Italy/Portugal pending</span>
             </div>
             <div className="summary-row" role="row">
               <span>Destination social charges</span>
-              <strong>Pending {countryA} rules</strong>
-              <strong>Pending {countryB} rules</strong>
+              <strong>{countryCell(resultA, "estimated_social_charges_usd")}</strong>
+              <strong>{countryCell(resultB, "estimated_social_charges_usd")}</strong>
               <span>Tracked separately from income tax</span>
             </div>
             <div className="summary-row" role="row">
-              <span>Foreign tax credit estimate</span>
-              <strong>Pending FTC rules</strong>
-              <strong>Pending FTC rules</strong>
-              <span>Separate passive/general/treaty baskets</span>
+              <span>Advisor-review flags</span>
+              <strong>{resultA ? flagsA : "Run estimate"}</strong>
+              <strong>{resultB ? flagsB : "Run estimate"}</strong>
+              <span>Conservative flags are expected in v1</span>
             </div>
             <div className="summary-row" role="row">
               <span>Estimated worldwide tax</span>
@@ -278,3 +369,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>
 );
+

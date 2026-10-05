@@ -8,6 +8,6 @@
 | Cost-of-living module | Separate product module from tax estimation |
 | PDF export | CSV is the first export target |
 | RAG over treaty/source documents | Structured rules should drive calculations first; RAG can later explain and cite |
-| Social/OAuth login | Email/password is enough for v1 |
-| Shareable scenario links | Private saved scenarios first |
-
+| Social/OAuth login | No-login public estimator is enough for v1 |
+| Authenticated saved scenarios | Deferred because v1 does not need to collect PII or store private tax profiles |
+| Shareable scenario links | Public calculator first; sharing can come after calculation logic stabilizes |

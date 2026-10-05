@@ -17,9 +17,9 @@
 
 | Layer | Responsibility |
 |---|---|
-| Frontend | Scenario form, income lines, deduction inputs, results table, auth screens |
-| Backend API | Auth, scenario persistence, calculation orchestration, exports |
-| Database | Users, scenarios, inputs, calculation snapshots |
+| Frontend | Scenario form, income lines, deduction inputs, results table |
+| Backend API | Public calculation orchestration, optional scenario persistence later, exports |
+| Database | Deferred for v1 unless saved scenarios return |
 | Calculation modules | US federal/Texas, destination-country logic, FTC baskets |
 | Country modules | France-specific, Italy-specific, Portugal-specific treatment |
 
@@ -53,7 +53,7 @@ The calculation model should support later migration to a fuller Form 1116-style
 
 | Field | Decision |
 |---|---|
-| Screen job | Create a tax scenario and compare estimated US vs destination-country tax impact |
+| Screen job | Enter income assumptions and compare estimated tax impact across two destination countries |
 | Primary user/action | US citizen entering income and residency assumptions to inspect after-tax outcomes |
 | Information hierarchy | Destination/profile first, income lines second, estimated results and flags third |
 | Workflow shape | Create, validate, compare, save |
@@ -61,7 +61,6 @@ The calculation model should support later migration to a fuller Form 1116-style
 | Navigation/control model | App shell with tabs for Scenario, Results, and later Cost of Living |
 | Density | Standard-to-compact because this is a financial planning workflow |
 | Visual language | Quiet product UI, strong tables/forms, limited accent color, tabular numerics |
-| Required states | Empty, validation error, loading, saved, calculation unavailable, advisor review |
+| Required states | Empty, validation error, loading, calculation unavailable, advisor review |
 | Responsive behavior | Desktop split workflow, mobile stacked sections with horizontally scrollable result tables |
 | Forbidden defaults | Marketing hero page, generic dashboard cards, unsupported tax precision |
-

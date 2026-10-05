@@ -10,7 +10,7 @@ The first implementation targets:
 - 2026 tax year
 - Monthly income inputs with annualized calculations
 - Basket-aware foreign tax credit modeling
-- Authenticated saved scenarios
+- Public, no-login estimates
 
 This is not tax advice. The app is designed to produce approximate, explainable estimates and conservative advisor-review flags.
 
@@ -21,7 +21,7 @@ This is not tax advice. The app is designed to produce approximate, explainable 
 | Frontend | React, TypeScript, Vite |
 | Backend | FastAPI |
 | Database | Neon Postgres |
-| Auth | Email/password with JWT |
+| Auth | Deferred |
 | Deployment | Render, frontend at app root and API under `/api` |
 
 ## Local Development
@@ -48,5 +48,4 @@ On macOS, prefer Homebrew for system packages. Python package installation remai
 
 - Do not commit `.env` or other secret-bearing files.
 - 2026 country and treaty rules must be source-validated before production use.
-- Calculation snapshots are saved with scenario results so future rule updates do not silently rewrite prior estimates.
-
+- Calculation snapshots should be saved only if scenario persistence is added later.

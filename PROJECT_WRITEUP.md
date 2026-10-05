@@ -2,7 +2,7 @@
 
 ## What We Built
 
-We started a greenfield Tax Treaty Analyzer for US citizens comparing tax outcomes across France, Italy, and Portugal. The initial direction includes authenticated saved scenarios, basket-aware foreign tax credit inputs, and a side-by-side tax estimation workflow. The app is structured to separate tax estimation from future cost-of-living analysis.
+We started a greenfield Tax Treaty Analyzer for US citizens comparing tax outcomes across France, Italy, and Portugal. The current direction is a public, no-login estimator with basket-aware foreign tax credit inputs and a side-by-side tax comparison workflow. The app is structured to separate tax estimation from future cost-of-living analysis.
 
 ## Why It Is Interesting And Valuable
 
@@ -10,5 +10,4 @@ The project addresses a real planning gap for US citizens considering retirement
 
 ## How It Was Built
 
-The planned stack is React, TypeScript, Vite, FastAPI, and Neon Postgres. The architecture separates shared scenario plumbing from country-specific tax rule modules. The calculation layer is designed to preserve explainability through assumptions, confidence levels, and advisor-review flags.
-
+The planned stack is React, TypeScript, Vite, and FastAPI, with Neon Postgres deferred unless scenario persistence returns. The architecture separates shared calculation plumbing from country-specific tax rule modules. The calculation layer is designed to preserve explainability through assumptions, confidence levels, and advisor-review flags.

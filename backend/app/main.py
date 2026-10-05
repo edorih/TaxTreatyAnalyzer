@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routers import auth, scenarios
+from app.routers import auth, calculate, scenarios
 
 app = FastAPI(
     title="Tax Treaty Analyzer API",
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(calculate.router, prefix="/api/calculate", tags=["calculate"])
 app.include_router(scenarios.router, prefix="/api/scenarios", tags=["scenarios"])
 
 
