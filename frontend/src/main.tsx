@@ -1,11 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Calculator, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Calculator, Check, Plus, ShieldCheck } from "lucide-react";
 import "./styles.css";
 
 type DestinationCountry = "france" | "italy" | "portugal";
 type FtcBasket = "passive" | "general" | "treaty_resourced" | "unknown";
 type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
+type AppStep = "landing" | "inputs" | "results";
 
 type IncomeLine = {
   id: string;
@@ -16,12 +17,11 @@ type IncomeLine = {
 };
 
 type CountryTaxResult = {
-  country?: string;
-  status?: string;
   estimated_income_tax_usd?: number;
   estimated_social_charges_usd?: number;
   total_taxable_income_usd?: number;
   advisor_flags?: Array<{ code: string; severity: string; message: string }>;
+  assumptions?: string[];
 };
 
 type CalculationSnapshot = {
@@ -74,60 +74,48 @@ function formatUsd(value: number | undefined): string {
   }).format(value);
 }
 
-function countryLabel(country: DestinationCountry): string {
-  return country[0].toUpperCase() + country.slice(1);
-}
-
 function App() {
-  const [countryA, setCountryA] = React.useState<DestinationCountry>("france");
-  const [countryB, setCountryB] = React.useState<DestinationCountry>("portugal");
+  const [step, setStep] = React.useState<AppStep>("landing");
+  const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
   const [isTaxResident, setIsTaxResident] = React.useState(true);
   const [lines, setLines] = React.useState<IncomeLine[]>(initialLines);
-  const [resultA, setResultA] = React.useState<CalculationSnapshot | null>(null);
-  const [resultB, setResultB] = React.useState<CalculationSnapshot | null>(null);
+  const [result, setResult] = React.useState<CalculationSnapshot | null>(null);
   const [isCalculating, setIsCalculating] = React.useState(false);
   const [calculationError, setCalculationError] = React.useState<string | null>(null);
 
   const annualIncome = lines.reduce((sum, line) => sum + line.monthlyAmountUsd * 12, 0);
-  const basketTotals = lines.reduce<Record<string, number>>((acc, line) => {
-    acc[line.ftcBasket] = (acc[line.ftcBasket] ?? 0) + line.monthlyAmountUsd * 12;
-    return acc;
-  }, {});
+  const advisorFlagCount = result?.country_tax.advisor_flags?.length ?? 0;
 
-  async function calculateForCountry(country: DestinationCountry): Promise<CalculationSnapshot> {
-    const response = await fetch(`${apiBaseUrl}/calculate`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        filing_status: filingStatus,
-        destination_country: country,
-        destination_tax_resident: isTaxResident,
-        deduction_mode: "standard",
-        income_lines: lines.map((line) => ({
-          id: line.id,
-          income_type: line.incomeType,
-          monthly_amount_usd: line.monthlyAmountUsd,
-          source_country: line.sourceCountry,
-          ftc_basket: line.ftcBasket
-        })),
-        deduction_lines: []
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Calculation failed for ${countryLabel(country)}`);
-    }
-    return response.json();
-  }
-
-  async function calculateComparison() {
+  async function submitEstimate() {
     setIsCalculating(true);
     setCalculationError(null);
     try {
-      const [nextResultA, nextResultB] = await Promise.all([calculateForCountry(countryA), calculateForCountry(countryB)]);
-      setResultA(nextResultA);
-      setResultB(nextResultB);
+      const response = await fetch(`${apiBaseUrl}/calculate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          filing_status: filingStatus,
+          destination_country: selectedCountry,
+          destination_tax_resident: isTaxResident,
+          deduction_mode: "standard",
+          income_lines: lines.map((line) => ({
+            id: line.id,
+            income_type: line.incomeType,
+            monthly_amount_usd: line.monthlyAmountUsd,
+            source_country: line.sourceCountry,
+            ftc_basket: line.ftcBasket
+          })),
+          deduction_lines: []
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Calculation failed. Please check the inputs and try again.");
+      }
+
+      setResult(await response.json());
+      setStep("results");
     } catch (error) {
       setCalculationError(error instanceof Error ? error.message : "Calculation failed");
     } finally {
@@ -152,215 +140,333 @@ function App() {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
   }
 
-  function countryCell(result: CalculationSnapshot | null, key: keyof CountryTaxResult): string {
-    if (!result) {
-      return "Run estimate";
-    }
-    if (result.country_tax.status === "country_module_not_implemented") {
-      return "Not implemented";
-    }
-    const value = result.country_tax[key];
-    return typeof value === "number" ? formatUsd(value) : "Pending";
-  }
-
-  const flagsA = resultA?.country_tax.advisor_flags?.length ?? 0;
-  const flagsB = resultB?.country_tax.advisor_flags?.length ?? 0;
-
   return (
     <main className="app-shell">
-      <section className="workspace" aria-labelledby="scenario-title">
-        <header className="topbar">
+      <section className="workspace" aria-labelledby="app-title">
+        {step === "landing" ? (
+          <LandingPage
+            selectedCountry={selectedCountry}
+            onSelectCountry={setSelectedCountry}
+            onContinue={() => setStep("inputs")}
+          />
+        ) : null}
+
+        {step === "inputs" ? (
+          <InputsPage
+            filingStatus={filingStatus}
+            isTaxResident={isTaxResident}
+            lines={lines}
+            annualIncome={annualIncome}
+            calculationError={calculationError}
+            isCalculating={isCalculating}
+            onBack={() => setStep("landing")}
+            onFilingStatusChange={setFilingStatus}
+            onTaxResidentChange={setIsTaxResident}
+            onAddIncomeLine={addIncomeLine}
+            onUpdateLine={updateLine}
+            onSubmit={submitEstimate}
+          />
+        ) : null}
+
+        {step === "results" && result ? (
+          <ResultsPage
+            result={result}
+            advisorFlagCount={advisorFlagCount}
+            onBack={() => setStep("inputs")}
+            onStartOver={() => setStep("landing")}
+          />
+        ) : null}
+      </section>
+    </main>
+  );
+}
+
+function LandingPage({
+  selectedCountry,
+  onSelectCountry,
+  onContinue
+}: {
+  selectedCountry: DestinationCountry;
+  onSelectCountry: (country: DestinationCountry) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="landing-layout">
+      <section className="landing-copy" aria-labelledby="app-title">
+        <p className="eyebrow">US citizen retirement tax estimator</p>
+        <h1 id="app-title">Compare how a move abroad may affect your tax picture.</h1>
+        <p className="lede">
+          Tax Treaty Analyzer is for US citizens exploring retirement or long-term relocation abroad. It estimates
+          destination-country tax exposure, separates local social charges, and highlights treaty areas that deserve
+          advisor review.
+        </p>
+        <div className="output-list" aria-label="Estimator outputs">
           <div>
-            <p className="eyebrow">2026 exploratory estimate</p>
-            <h1 id="scenario-title">Tax Treaty Analyzer</h1>
+            <Check size={16} aria-hidden="true" />
+            Destination income tax and taxable-income estimate
           </div>
-          <button className="primary-button" type="button" onClick={calculateComparison} disabled={isCalculating}>
-            <Calculator size={16} aria-hidden="true" />
-            {isCalculating ? "Calculating" : "Calculate estimate"}
-          </button>
-        </header>
-
-        <div className="grid">
-          <section className="panel" aria-labelledby="profile-heading">
-            <h2 id="profile-heading">Scenario Profile</h2>
-            <div className="field-grid">
-              <label>
-                Destination A
-                <select value={countryA} onChange={(event) => setCountryA(event.target.value as DestinationCountry)}>
-                  <option value="france">France</option>
-                  <option value="italy">Italy</option>
-                  <option value="portugal">Portugal</option>
-                </select>
-              </label>
-              <label>
-                Destination B
-                <select value={countryB} onChange={(event) => setCountryB(event.target.value as DestinationCountry)}>
-                  <option value="france">France</option>
-                  <option value="italy">Italy</option>
-                  <option value="portugal">Portugal</option>
-                </select>
-              </label>
-              <label>
-                Filing status
-                <select value={filingStatus} onChange={(event) => setFilingStatus(event.target.value as FilingStatus)}>
-                  <option value="single">Single</option>
-                  <option value="married_filing_jointly">Married filing jointly</option>
-                  <option value="married_filing_separately">Married filing separately</option>
-                  <option value="head_of_household">Head of household</option>
-                </select>
-              </label>
-              <label>
-                US state
-                <select value="texas" disabled>
-                  <option value="texas">Texas</option>
-                </select>
-              </label>
-              <label>
-                Tax residency assumption
-                <select value={isTaxResident ? "yes" : "unsure"} onChange={(event) => setIsTaxResident(event.target.value === "yes")}>
-                  <option value="yes">Tax resident in both compared countries</option>
-                  <option value="unsure">Need advisor review</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section className="panel income-panel" aria-labelledby="income-heading">
-            <div className="section-heading">
-              <h2 id="income-heading">Income Lines</h2>
-              <button className="icon-button" type="button" onClick={addIncomeLine} aria-label="Add income line">
-                <Plus size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <div className="income-table" role="table" aria-label="Income lines">
-              <div className="table-row table-head" role="row">
-                <span role="columnheader">Type</span>
-                <span role="columnheader">Monthly USD</span>
-                <span role="columnheader">Source</span>
-                <span role="columnheader">FTC basket</span>
-              </div>
-              {lines.map((line) => (
-                <div className="table-row" role="row" key={line.id}>
-                  <select
-                    aria-label="Income type"
-                    value={line.incomeType}
-                    onChange={(event) => updateLine(line.id, { incomeType: event.target.value })}
-                  >
-                    {incomeTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    aria-label="Monthly amount in USD"
-                    type="number"
-                    min="0"
-                    inputMode="decimal"
-                    value={line.monthlyAmountUsd}
-                    onChange={(event) => updateLine(line.id, { monthlyAmountUsd: Number(event.target.value) })}
-                  />
-                  <input
-                    aria-label="Source country"
-                    value={line.sourceCountry}
-                    onChange={(event) => updateLine(line.id, { sourceCountry: event.target.value })}
-                  />
-                  <select
-                    aria-label="Foreign tax credit basket"
-                    value={line.ftcBasket}
-                    onChange={(event) => updateLine(line.id, { ftcBasket: event.target.value as FtcBasket })}
-                  >
-                    <option value="general">General</option>
-                    <option value="passive">Passive</option>
-                    <option value="treaty_resourced">Treaty-resourced</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </div>
-              ))}
-            </div>
-          </section>
+          <div>
+            <Check size={16} aria-hidden="true" />
+            Local social charges shown separately from income tax
+          </div>
+          <div>
+            <Check size={16} aria-hidden="true" />
+            Advisor-review flags for treaty-sensitive income
+          </div>
         </div>
+      </section>
 
-        <section className="results" aria-labelledby="results-heading">
-          <div>
-            <p className="eyebrow">Estimate summary</p>
-            <h2 id="results-heading">Destination comparison</h2>
+      <section className="country-selector" aria-labelledby="country-heading">
+        <div>
+          <p className="eyebrow">Choose a country</p>
+          <h2 id="country-heading">Start with one destination</h2>
+        </div>
+        <div className="country-grid">
+          <button
+            className={`country-card ${selectedCountry === "france" ? "selected" : ""}`}
+            type="button"
+            onClick={() => onSelectCountry("france")}
+          >
+            <strong>France</strong>
+            <span>Live estimate</span>
+          </button>
+          <button className="country-card" type="button" disabled>
+            <strong>Italy</strong>
+            <span>Coming later</span>
+          </button>
+          <button className="country-card" type="button" disabled>
+            <strong>Portugal</strong>
+            <span>Coming later</span>
+          </button>
+        </div>
+        <button className="primary-button full-width" type="button" onClick={onContinue}>
+          Continue with France
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function InputsPage({
+  filingStatus,
+  isTaxResident,
+  lines,
+  annualIncome,
+  calculationError,
+  isCalculating,
+  onBack,
+  onFilingStatusChange,
+  onTaxResidentChange,
+  onAddIncomeLine,
+  onUpdateLine,
+  onSubmit
+}: {
+  filingStatus: FilingStatus;
+  isTaxResident: boolean;
+  lines: IncomeLine[];
+  annualIncome: number;
+  calculationError: string | null;
+  isCalculating: boolean;
+  onBack: () => void;
+  onFilingStatusChange: (status: FilingStatus) => void;
+  onTaxResidentChange: (value: boolean) => void;
+  onAddIncomeLine: () => void;
+  onUpdateLine: (id: string, patch: Partial<IncomeLine>) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <>
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">France estimate</p>
+          <h1 id="app-title">Enter income assumptions</h1>
+        </div>
+        <button className="ghost-button" type="button" onClick={onBack}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Countries
+        </button>
+      </header>
+
+      <div className="grid">
+        <section className="panel" aria-labelledby="profile-heading">
+          <h2 id="profile-heading">Scenario Profile</h2>
+          <div className="field-grid">
+            <label>
+              Filing status
+              <select value={filingStatus} onChange={(event) => onFilingStatusChange(event.target.value as FilingStatus)}>
+                <option value="single">Single</option>
+                <option value="married_filing_jointly">Married filing jointly</option>
+                <option value="married_filing_separately">Married filing separately</option>
+                <option value="head_of_household">Head of household</option>
+              </select>
+            </label>
+            <label>
+              US state
+              <select value="texas" disabled>
+                <option value="texas">Texas</option>
+              </select>
+            </label>
+            <label>
+              France tax residency
+              <select value={isTaxResident ? "yes" : "review"} onChange={(event) => onTaxResidentChange(event.target.value === "yes")}>
+                <option value="yes">Assume France tax resident</option>
+                <option value="review">Need advisor review</option>
+              </select>
+            </label>
           </div>
-          {calculationError ? <p className="error-text">{calculationError}</p> : null}
-          <div className="summary-table" role="table" aria-label="Tax estimate summary">
-            <div className="summary-row summary-head" role="row">
-              <span role="columnheader">Measure</span>
-              <span role="columnheader">{countryLabel(countryA)}</span>
-              <span role="columnheader">{countryLabel(countryB)}</span>
-              <span role="columnheader">FTC notes</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Annual income modeled</span>
-              <strong>{formatUsd(resultA?.annual_income_usd ?? annualIncome)}</strong>
-              <strong>{formatUsd(resultB?.annual_income_usd ?? annualIncome)}</strong>
-              <span>Basket-aware inputs captured</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>US federal income tax</span>
-              <strong>Pending US rules</strong>
-              <strong>Pending US rules</strong>
-              <span>Before foreign tax credit</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>State income tax</span>
-              <strong>{formatUsd(0)}</strong>
-              <strong>{formatUsd(0)}</strong>
-              <span>Texas only in MVP</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Destination taxable income</span>
-              <strong>{countryCell(resultA, "total_taxable_income_usd")}</strong>
-              <strong>{countryCell(resultB, "total_taxable_income_usd")}</strong>
-              <span>Country-specific module result</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Destination income tax</span>
-              <strong>{countryCell(resultA, "estimated_income_tax_usd")}</strong>
-              <strong>{countryCell(resultB, "estimated_income_tax_usd")}</strong>
-              <span>France module active; Italy/Portugal pending</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Destination social charges</span>
-              <strong>{countryCell(resultA, "estimated_social_charges_usd")}</strong>
-              <strong>{countryCell(resultB, "estimated_social_charges_usd")}</strong>
-              <span>Tracked separately from income tax</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Advisor-review flags</span>
-              <strong>{resultA ? flagsA : "Run estimate"}</strong>
-              <strong>{resultB ? flagsB : "Run estimate"}</strong>
-              <span>Conservative flags are expected in v1</span>
-            </div>
-            <div className="summary-row" role="row">
-              <span>Estimated worldwide tax</span>
-              <strong>Pending</strong>
-              <strong>Pending</strong>
-              <span>US federal + state + destination - allowable FTC</span>
-            </div>
+        </section>
+
+        <section className="panel income-panel" aria-labelledby="income-heading">
+          <div className="section-heading">
+            <h2 id="income-heading">Income Lines</h2>
+            <button className="icon-button" type="button" onClick={onAddIncomeLine} aria-label="Add income line">
+              <Plus size={18} aria-hidden="true" />
+            </button>
           </div>
-          <div className="basket-strip" aria-label="FTC basket totals">
-            {Object.entries(basketTotals).map(([basket, total]) => (
-              <div key={basket}>
-                <span>{basket.replace("_", " ")}</span>
-                <strong>{formatUsd(total)}</strong>
+          <div className="income-table" role="table" aria-label="Income lines">
+            <div className="table-row table-head" role="row">
+              <span role="columnheader">Type</span>
+              <span role="columnheader">Monthly USD</span>
+              <span role="columnheader">Source</span>
+              <span role="columnheader">FTC basket</span>
+            </div>
+            {lines.map((line) => (
+              <div className="table-row" role="row" key={line.id}>
+                <select
+                  aria-label="Income type"
+                  value={line.incomeType}
+                  onChange={(event) => onUpdateLine(line.id, { incomeType: event.target.value })}
+                >
+                  {incomeTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label="Monthly amount in USD"
+                  type="number"
+                  min="0"
+                  inputMode="decimal"
+                  value={line.monthlyAmountUsd}
+                  onChange={(event) => onUpdateLine(line.id, { monthlyAmountUsd: Number(event.target.value) })}
+                />
+                <input
+                  aria-label="Source country"
+                  value={line.sourceCountry}
+                  onChange={(event) => onUpdateLine(line.id, { sourceCountry: event.target.value })}
+                />
+                <select
+                  aria-label="Foreign tax credit basket"
+                  value={line.ftcBasket}
+                  onChange={(event) => onUpdateLine(line.id, { ftcBasket: event.target.value as FtcBasket })}
+                >
+                  <option value="general">General</option>
+                  <option value="passive">Passive</option>
+                  <option value="treaty_resourced">Treaty-resourced</option>
+                  <option value="unknown">Unknown</option>
+                </select>
               </div>
             ))}
           </div>
-          <aside className="fine-print" aria-label="Advisor review notice">
-            <ShieldCheck size={12} aria-hidden="true" />
-            <p>
-              Exploratory estimate only. Advisor review is required for treaty-resourced income, Roth treatment,
-              pensions, Social Security, and any basket classified as unknown.
-            </p>
-          </aside>
         </section>
+      </div>
+
+      <section className="submit-bar" aria-label="Submit estimate">
+        <div>
+          <span>Annual income modeled</span>
+          <strong>{formatUsd(annualIncome)}</strong>
+        </div>
+        {calculationError ? <p className="error-text">{calculationError}</p> : null}
+        <button className="primary-button" type="button" onClick={onSubmit} disabled={isCalculating}>
+          <Calculator size={16} aria-hidden="true" />
+          {isCalculating ? "Calculating" : "Submit estimate"}
+        </button>
       </section>
-    </main>
+    </>
+  );
+}
+
+function ResultsPage({
+  result,
+  advisorFlagCount,
+  onBack,
+  onStartOver
+}: {
+  result: CalculationSnapshot;
+  advisorFlagCount: number;
+  onBack: () => void;
+  onStartOver: () => void;
+}) {
+  return (
+    <>
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">France estimate</p>
+          <h1 id="app-title">Tax estimate output</h1>
+        </div>
+        <div className="toolbar-actions">
+          <button className="ghost-button" type="button" onClick={onBack}>
+            <ArrowLeft size={16} aria-hidden="true" />
+            Edit inputs
+          </button>
+          <button className="ghost-button" type="button" onClick={onStartOver}>
+            Countries
+          </button>
+        </div>
+      </header>
+
+      <section className="results" aria-labelledby="results-heading">
+        <div>
+          <p className="eyebrow">Estimate summary</p>
+          <h2 id="results-heading">France tax estimate</h2>
+        </div>
+        <div className="summary-table" role="table" aria-label="France tax estimate summary">
+          <div className="result-row summary-head" role="row">
+            <span role="columnheader">Measure</span>
+            <span role="columnheader">Estimate</span>
+            <span role="columnheader">Notes</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>Annual income modeled</span>
+            <strong>{formatUsd(result.annual_income_usd)}</strong>
+            <span>Monthly inputs annualized</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>France taxable income</span>
+            <strong>{formatUsd(result.country_tax.total_taxable_income_usd)}</strong>
+            <span>Based on the France v1 country module</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>France income tax</span>
+            <strong>{formatUsd(result.country_tax.estimated_income_tax_usd)}</strong>
+            <span>Progressive and flat investment treatment where mapped</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>France social charges</span>
+            <strong>{formatUsd(result.country_tax.estimated_social_charges_usd)}</strong>
+            <span>Shown separately from income tax</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>US federal tax after FTC</span>
+            <strong>Pending</strong>
+            <span>FTC module not yet connected to final worldwide result</span>
+          </div>
+          <div className="result-row" role="row">
+            <span>Advisor-review flags</span>
+            <strong>{advisorFlagCount}</strong>
+            <span>Conservative flags are expected in v1</span>
+          </div>
+        </div>
+        <aside className="fine-print" aria-label="Advisor review notice">
+          <ShieldCheck size={12} aria-hidden="true" />
+          <p>
+            Exploratory estimate only. Advisor review is required for treaty-resourced income, Roth treatment,
+            pensions, Social Security, social charges, and any basket classified as unknown.
+          </p>
+        </aside>
+      </section>
+    </>
   );
 }
 
