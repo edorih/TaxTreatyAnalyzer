@@ -20,7 +20,9 @@ type CountryTaxResult = {
   estimated_income_tax_usd?: number;
   estimated_social_charges_usd?: number;
   total_taxable_income_usd?: number;
-  advisor_flags?: Array<{ code: string; severity: string; message: string }>;
+  advisor_flags?: Array<{ code: string; severity: string; message: string; income_line_id?: string | null }>;
+  social_charge_breakdown?: Array<{ code: string; label: string; rate: number; amount_usd: number }>;
+  sources?: Array<{ label: string; url: string; notes: string }>;
   assumptions?: string[];
 };
 
@@ -194,7 +196,7 @@ function LandingPage({
     <div className="landing-layout">
       <section className="landing-copy" aria-labelledby="app-title">
         <p className="eyebrow">US citizen retirement tax estimator</p>
-        <h1 id="app-title">Compare how a move abroad may affect your tax picture.</h1>
+        <h1 id="app-title">Know Thy Taxes when you move abroad</h1>
         <p className="lede">
           Tax Treaty Analyzer is for US citizens exploring retirement or long-term relocation abroad. It estimates
           destination-country tax exposure, separates local social charges, and highlights treaty areas that deserve
@@ -435,7 +437,16 @@ function ResultsPage({
           <div className="result-row" role="row">
             <span>France taxable income</span>
             <strong>{formatUsd(result.country_tax.total_taxable_income_usd)}</strong>
-            <span>Based on the France v1 country module</span>
+            <span>
+              See{" "}
+              <a
+                href="https://www.impots.gouv.fr/particulier/questions/comment-calculer-mon-taux-dimposition-dapres-le-bareme-progressif-de-limpot"
+                target="_blank"
+                rel="noreferrer"
+              >
+                French tax brackets
+              </a>
+            </span>
           </div>
           <div className="result-row" role="row">
             <span>France income tax</span>
@@ -450,7 +461,7 @@ function ResultsPage({
           <div className="result-row" role="row">
             <span>US federal tax after FTC</span>
             <strong>Pending</strong>
-            <span>FTC module not yet connected to final worldwide result</span>
+            <span>Pending because the US federal tax and Form 1116 FTC module has not been built yet</span>
           </div>
           <div className="result-row" role="row">
             <span>Advisor-review flags</span>
@@ -458,6 +469,43 @@ function ResultsPage({
             <span>Conservative flags are expected in v1</span>
           </div>
         </div>
+        <div className="detail-grid">
+          <section className="detail-panel" aria-labelledby="social-charges-heading">
+            <h2 id="social-charges-heading">French social charges</h2>
+            <div className="mini-table">
+              {(result.country_tax.social_charge_breakdown ?? []).map((component) => (
+                <div className="mini-row" key={component.code}>
+                  <span>{component.label}</span>
+                  <span>{(component.rate * 100).toFixed(1)}%</span>
+                  <strong>{formatUsd(component.amount_usd)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="detail-panel" aria-labelledby="advisor-flags-heading">
+            <h2 id="advisor-flags-heading">Advisor-review flags</h2>
+            <div className="flag-list">
+              {(result.country_tax.advisor_flags ?? []).map((flag) => (
+                <div className="flag-item" key={`${flag.code}-${flag.income_line_id ?? "scenario"}`}>
+                  <strong>{flag.severity.toUpperCase()}</strong>
+                  <span>{flag.message}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="detail-panel" aria-labelledby="sources-heading">
+          <h2 id="sources-heading">Sources</h2>
+          <div className="source-list">
+            {(result.country_tax.sources ?? []).map((source) => (
+              <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
+                {source.label}
+              </a>
+            ))}
+          </div>
+        </section>
         <aside className="fine-print" aria-label="Advisor review notice">
           <ShieldCheck size={12} aria-hidden="true" />
           <p>

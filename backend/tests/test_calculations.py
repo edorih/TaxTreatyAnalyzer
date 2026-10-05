@@ -75,6 +75,17 @@ def test_france_module_separates_income_tax_and_social_charges():
     assert result["country"] == "france"
     assert result["total_taxable_income_usd"] == 72000
     assert result["estimated_social_charges_usd"] == 2232
+    assert result["social_charge_breakdown"] == [
+        {"code": "csg", "label": "CSG", "rate": 0.106, "amount_usd": 1272.0, "notes": ["Applied to income lines mapped to French social charges in v1."]},
+        {"code": "crds", "label": "CRDS", "rate": 0.005, "amount_usd": 60.0, "notes": ["Applied to income lines mapped to French social charges in v1."]},
+        {
+            "code": "solidarity_levy",
+            "label": "Prelevement de solidarite",
+            "rate": 0.075,
+            "amount_usd": 900.0,
+            "notes": ["Applied to income lines mapped to French social charges in v1."],
+        },
+    ]
     social_security = next(
         treatment for treatment in result["income_treatments"] if treatment["income_line_id"] == "ssa"
     )

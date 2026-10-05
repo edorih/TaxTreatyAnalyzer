@@ -2,6 +2,7 @@ from app.calculations.types import (
     AdvisorFlag,
     CountryTaxResult,
     IncomeTreatment,
+    RateComponent,
     SourceReference,
     TaxComponent,
 )
@@ -17,7 +18,11 @@ FRANCE_PROGRESSIVE_BRACKETS_2026_REVENUS_2025 = [
 
 FRANCE_INVESTMENT_INCOME_TAX_RATE = 0.128
 FRANCE_INVESTMENT_SOCIAL_CHARGE_RATE_2026 = 0.186
-FRANCE_UNFURNISHED_RENTAL_SOCIAL_CHARGE_RATE = 0.172
+FRANCE_SOCIAL_CHARGE_COMPONENT_RATES_2026 = {
+    "csg": ("CSG", 0.106),
+    "crds": ("CRDS", 0.005),
+    "solidarity_levy": ("Prelevement de solidarite", 0.075),
+}
 
 FRANCE_SOURCES = [
     SourceReference(
@@ -28,7 +33,7 @@ FRANCE_SOURCES = [
     SourceReference(
         label="impots.gouv.fr - rental social charges",
         url="https://www.impots.gouv.fr/particulier/questions/je-donne-un-bien-en-location-dois-je-payer-des-prelevements-sociaux",
-        notes="French social charges on rental income, including 17.2% for unfurnished rental income.",
+        notes="French social charges on rental income, including component rates for furnished rental income in 2026.",
     ),
     SourceReference(
         label="impots.gouv.fr - investment income and social charges",
@@ -79,7 +84,13 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         for treatment in treatments
         if treatment.treaty_position == "france_taxable_flat_investment"
     )
-    social_charges = sum(treatment.france_social_charges_usd for treatment in treatments)
+    social_charge_base = sum(
+        treatment.france_taxable_amount_usd
+        for treatment in treatments
+        if treatment.france_social_charges_usd > 0
+    )
+    social_charge_breakdown = calculate_social_charge_breakdown(social_charge_base)
+    social_charges = sum(component.amount_usd for component in social_charge_breakdown)
     total_income_tax = progressive_tax + flat_income_tax
     taxable_income = sum(treatment.france_taxable_amount_usd for treatment in treatments)
 
@@ -114,6 +125,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         estimated_income_tax_usd=round(total_income_tax, 2),
         estimated_social_charges_usd=round(social_charges, 2),
         components=components,
+        social_charge_breakdown=social_charge_breakdown,
         income_treatments=treatments,
         advisor_flags=flags,
         sources=FRANCE_SOURCES,
@@ -240,7 +252,7 @@ def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[I
                 income_line_id=line.id,
             )
         )
-        social_charges = annual_amount * FRANCE_UNFURNISHED_RENTAL_SOCIAL_CHARGE_RATE
+        social_charges = annual_amount * FRANCE_INVESTMENT_SOCIAL_CHARGE_RATE_2026
         return income_treatment(
             line,
             annual_amount,
@@ -250,7 +262,7 @@ def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[I
             "france_residence_taxable_progressive",
             "passive",
             "low",
-            ["Uses unfurnished rental social-charge rate as a conservative placeholder."],
+            ["Uses 2026 CSG, CRDS, and solidarity levy components as a conservative placeholder."],
         ), flags
 
     if normalized_type == "529_withdrawal":
@@ -293,6 +305,19 @@ def calculate_progressive_tax(taxable_income: float, parts: float = 1.0) -> floa
     return tax_per_part * parts
 
 
+def calculate_social_charge_breakdown(taxable_base: float) -> list[RateComponent]:
+    return [
+        RateComponent(
+            code=code,
+            label=label,
+            rate=rate,
+            amount_usd=round(taxable_base * rate, 2),
+            notes=["Applied to income lines mapped to French social charges in v1."],
+        )
+        for code, (label, rate) in FRANCE_SOCIAL_CHARGE_COMPONENT_RATES_2026.items()
+    ]
+
+
 def income_treatment(
     line: IncomeLine,
     annual_amount: float,
@@ -327,4 +352,3 @@ def normalize_income_type(income_type: str) -> str:
         .replace("(", "")
         .replace(")", "")
     )
-
