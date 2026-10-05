@@ -20,6 +20,15 @@ type CountryTaxResult = {
   estimated_income_tax_usd?: number;
   estimated_social_charges_usd?: number;
   total_taxable_income_usd?: number;
+  income_tax_rows?: Array<{
+    income_line_id: string;
+    income_type: string;
+    annual_amount_usd: number;
+    france_taxable_amount_usd: number;
+    france_income_tax_usd: number;
+    france_social_charges_usd: number;
+    notes: string[];
+  }>;
   advisor_flags?: Array<{ code: string; severity: string; message: string; income_line_id?: string | null }>;
   social_charge_breakdown?: Array<{ code: string; label: string; rate: number; amount_usd: number }>;
   sources?: Array<{ label: string; url: string; notes: string }>;
@@ -157,6 +166,10 @@ function App() {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
   }
 
+  function deleteLine(id: string) {
+    setLines((current) => (current.length > 1 ? current.filter((line) => line.id !== id) : current));
+  }
+
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="app-title">
@@ -181,6 +194,7 @@ function App() {
             onTaxResidentChange={setIsTaxResident}
             onAddIncomeLine={addIncomeLine}
             onUpdateLine={updateLine}
+            onDeleteLine={deleteLine}
             onSubmit={submitEstimate}
           />
         ) : null}
@@ -276,6 +290,7 @@ function InputsPage({
   onTaxResidentChange,
   onAddIncomeLine,
   onUpdateLine,
+  onDeleteLine,
   onSubmit
 }: {
   filingStatus: FilingStatus;
@@ -289,6 +304,7 @@ function InputsPage({
   onTaxResidentChange: (value: boolean) => void;
   onAddIncomeLine: () => void;
   onUpdateLine: (id: string, patch: Partial<IncomeLine>) => void;
+  onDeleteLine: (id: string) => void;
   onSubmit: () => void;
 }) {
   return (
@@ -346,6 +362,7 @@ function InputsPage({
               <span role="columnheader">Monthly USD</span>
               <span role="columnheader">Source</span>
               <span role="columnheader">FTC basket</span>
+              <span role="columnheader">Remove</span>
             </div>
             {lines.map((line) => (
               <div className="table-row" role="row" key={line.id}>
@@ -390,6 +407,15 @@ function InputsPage({
                   <option value="not_applicable">Not applicable</option>
                   <option value="unknown">Unknown</option>
                 </select>
+                <button
+                  className="row-delete-button"
+                  type="button"
+                  onClick={() => onDeleteLine(line.id)}
+                  disabled={lines.length <= 1}
+                  aria-label={`Remove ${line.incomeType} income line`}
+                >
+                  x
+                </button>
               </div>
             ))}
           </div>
@@ -422,6 +448,17 @@ function ResultsPage({
   onBack: () => void;
   onStartOver: () => void;
 }) {
+  const incomeRows = result.country_tax.income_tax_rows ?? [];
+  const rowTotals = incomeRows.reduce(
+    (totals, row) => ({
+      annualIncome: totals.annualIncome + row.annual_amount_usd,
+      taxableIncome: totals.taxableIncome + row.france_taxable_amount_usd,
+      incomeTax: totals.incomeTax + row.france_income_tax_usd,
+      socialCharges: totals.socialCharges + row.france_social_charges_usd
+    }),
+    { annualIncome: 0, taxableIncome: 0, incomeTax: 0, socialCharges: 0 }
+  );
+
   return (
     <>
       <header className="topbar">
@@ -445,22 +482,34 @@ function ResultsPage({
           <p className="eyebrow">Estimate summary</p>
           <h2 id="results-heading">France tax estimate</h2>
         </div>
-        <div className="summary-table" role="table" aria-label="France tax estimate summary">
-          <div className="result-row summary-head" role="row">
-            <span role="columnheader">Measure</span>
-            <span role="columnheader">Estimate</span>
+        <div className="income-results-table" role="table" aria-label="France tax estimate by income type">
+          <div className="income-result-row summary-head" role="row">
+            <span role="columnheader">Income type</span>
+            <span role="columnheader">Annual income</span>
+            <span role="columnheader">France taxable</span>
+            <span role="columnheader">Income tax</span>
+            <span role="columnheader">Social charges</span>
             <span role="columnheader">Notes</span>
           </div>
-          <div className="result-row" role="row">
-            <span>Annual income modeled</span>
-            <strong>{formatUsd(result.annual_income_usd)}</strong>
-            <span>Monthly inputs annualized</span>
-          </div>
-          <div className="result-row" role="row">
-            <span>France taxable income</span>
-            <strong>{formatUsd(result.country_tax.total_taxable_income_usd)}</strong>
+          {incomeRows.map((row) => (
+            <div className="income-result-row" role="row" key={row.income_line_id}>
+              <span>{row.income_type}</span>
+              <strong>{formatUsd(row.annual_amount_usd)}</strong>
+              <strong>{formatUsd(row.france_taxable_amount_usd)}</strong>
+              <strong>{formatUsd(row.france_income_tax_usd)}</strong>
+              <strong>{formatUsd(row.france_social_charges_usd)}</strong>
+              <span>{row.notes.length > 0 ? row.notes.join(" ") : "No special note."}</span>
+            </div>
+          ))}
+          <div className="income-result-row total-row" role="row">
+            <span>Total</span>
+            <strong>{formatUsd(rowTotals.annualIncome)}</strong>
+            <strong>{formatUsd(rowTotals.taxableIncome)}</strong>
+            <strong>{formatUsd(rowTotals.incomeTax)}</strong>
+            <strong>{formatUsd(rowTotals.socialCharges)}</strong>
             <span>
-              See{" "}
+              US federal tax after FTC is pending because the US federal tax and Form 1116 FTC module has not been
+              built yet. See{" "}
               <a
                 href="https://www.impots.gouv.fr/particulier/questions/comment-calculer-mon-taux-dimposition-dapres-le-bareme-progressif-de-limpot"
                 target="_blank"
@@ -468,27 +517,8 @@ function ResultsPage({
               >
                 French tax brackets
               </a>
+              .
             </span>
-          </div>
-          <div className="result-row" role="row">
-            <span>France income tax</span>
-            <strong>{formatUsd(result.country_tax.estimated_income_tax_usd)}</strong>
-            <span>Progressive and flat investment treatment where mapped</span>
-          </div>
-          <div className="result-row" role="row">
-            <span>France social charges</span>
-            <strong>{formatUsd(result.country_tax.estimated_social_charges_usd)}</strong>
-            <span>Shown separately from income tax</span>
-          </div>
-          <div className="result-row" role="row">
-            <span>US federal tax after FTC</span>
-            <strong>Pending</strong>
-            <span>Pending because the US federal tax and Form 1116 FTC module has not been built yet</span>
-          </div>
-          <div className="result-row" role="row">
-            <span>Advisor-review flags</span>
-            <strong>{advisorFlagCount}</strong>
-            <span>Conservative flags are expected in v1</span>
           </div>
         </div>
         <div className="detail-grid">

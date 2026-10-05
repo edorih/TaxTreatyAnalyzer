@@ -218,6 +218,7 @@ select:disabled {
 
 .primary-button,
 .ghost-button,
+.row-delete-button,
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -257,8 +258,25 @@ select:disabled {
   width: 34px;
 }
 
+.row-delete-button {
+  width: 30px;
+  min-height: 34px;
+  padding: 0;
+  color: #7b1d1d;
+  font-size: 0.9rem;
+  font-weight: 800;
+  background: #ffffff;
+}
+
+.row-delete-button:disabled {
+  cursor: not-allowed;
+  color: #aeb6c4;
+  background: #f5f6f8;
+}
+
 .primary-button:hover,
 .ghost-button:hover,
+.row-delete-button:hover,
 .icon-button:hover {
   background: #eef5ff;
   border-color: #8fbfff;
@@ -288,9 +306,9 @@ select:disabled {
 
 .table-row {
   display: grid;
-  grid-template-columns: minmax(170px, 1.2fr) minmax(112px, 0.65fr) minmax(140px, 0.8fr) minmax(138px, 0.8fr);
+  grid-template-columns: minmax(170px, 1.2fr) minmax(112px, 0.65fr) minmax(140px, 0.8fr) minmax(138px, 0.8fr) 38px;
   gap: 6px;
-  min-width: 610px;
+  min-width: 654px;
 }
 
 .table-head {
@@ -330,7 +348,8 @@ select:disabled {
   text-transform: uppercase;
 }
 
-.summary-table {
+.summary-table,
+.income-results-table {
   overflow-x: auto;
   border: 1px solid #d8dde7;
   border-radius: 8px;
@@ -360,6 +379,36 @@ select:disabled {
 
 .result-row:first-child {
   border-top: 0;
+}
+
+.income-result-row {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1.1fr)
+    minmax(120px, 0.7fr)
+    minmax(120px, 0.7fr)
+    minmax(110px, 0.65fr)
+    minmax(120px, 0.7fr)
+    minmax(280px, 1.4fr);
+  gap: 10px;
+  min-width: 980px;
+  padding: 9px 12px;
+  border-top: 1px solid #e8ebf0;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.income-result-row:first-child {
+  border-top: 0;
+}
+
+.income-result-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.total-row {
+  background: #f7f9fc;
+  font-weight: 750;
 }
 
 .detail-grid {
