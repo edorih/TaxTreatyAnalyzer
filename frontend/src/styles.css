@@ -345,14 +345,15 @@ select:disabled {
   display: grid;
   gap: 5px;
   margin-top: 10px;
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .table-row {
   display: grid;
-  grid-template-columns: minmax(170px, 1.2fr) minmax(112px, 0.65fr) minmax(140px, 0.8fr) minmax(138px, 0.8fr) 38px;
+  grid-template-columns: minmax(150px, 1.25fr) minmax(86px, 0.55fr) minmax(112px, 0.8fr) minmax(112px, 0.8fr) 32px;
   gap: 5px;
-  min-width: 654px;
+  min-width: 0;
+  align-items: center;
 }
 
 .table-head {
@@ -647,5 +648,29 @@ select:disabled {
     align-items: stretch;
     flex-direction: column;
     grid-template-columns: 1fr;
+  }
+
+  .income-table {
+    gap: 8px;
+  }
+
+  .table-head {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-row:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .row-delete-button {
+    width: 100%;
   }
 }
