@@ -52,6 +52,7 @@ class ScenarioInputs(BaseModel):
     filing_status: FilingStatus
     destination_country: DestinationCountry
     destination_tax_resident: bool
+    france_household_parts: float = Field(default=1, ge=1, le=20)
     deduction_mode: Literal["standard", "itemized"]
     income_lines: list[IncomeLine]
     deduction_lines: list[DeductionLine] = []

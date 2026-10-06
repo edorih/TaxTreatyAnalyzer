@@ -56,6 +56,7 @@ FRANCE_SOURCES = [
 
 def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     treatments: list[IncomeTreatment] = []
+    household_parts = inputs.france_household_parts
     flags: list[AdvisorFlag] = [
         AdvisorFlag(
             code="fx_assumption",
@@ -79,7 +80,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         for treatment in treatments
         if treatment.treaty_position in {"france_residence_taxable_progressive", "france_taxable_uncertain_progressive"}
     )
-    progressive_tax = calculate_progressive_tax(progressive_base)
+    progressive_tax = calculate_progressive_tax(progressive_base, household_parts)
     flat_income_tax = sum(
         treatment.france_income_tax_usd
         for treatment in treatments
@@ -102,7 +103,10 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
             label="France progressive income tax",
             amount_usd=round(progressive_tax, 2),
             confidence="medium",
-            notes=["Applied to employment, pension-like, and other progressively taxed income classified as France-taxable."],
+            notes=[
+                "Applied to employment, pension-like, and other progressively taxed income classified as France-taxable.",
+                f"Uses {household_parts:g} French tax household part(s) for quotient familial.",
+            ],
         ),
         TaxComponent(
             code="fr_income_tax_flat_investment",
@@ -123,6 +127,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     return CountryTaxResult(
         country="france",
         tax_year=2026,
+        france_household_parts=household_parts,
         total_taxable_income_usd=round(taxable_income, 2),
         estimated_income_tax_usd=round(total_income_tax, 2),
         estimated_social_charges_usd=round(social_charges, 2),
@@ -135,6 +140,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         assumptions=[
             "User is a US citizen and France tax resident for the scenario.",
             "Inputs are monthly USD amounts annualized by multiplying by 12.",
+            f"France progressive tax uses {household_parts:g} household part(s) supplied by the user.",
             "The first France module estimates broad treatment only; it is not a filing calculator.",
         ],
         confidence="draft_country_module",

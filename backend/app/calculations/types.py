@@ -81,6 +81,7 @@ class IncomeTaxRow:
 class CountryTaxResult:
     country: str
     tax_year: int
+    france_household_parts: float
     total_taxable_income_usd: float
     estimated_income_tax_usd: float
     estimated_social_charges_usd: float
@@ -97,6 +98,7 @@ class CountryTaxResult:
         return {
             "country": self.country,
             "tax_year": self.tax_year,
+            "france_household_parts": self.france_household_parts,
             "total_taxable_income_usd": self.total_taxable_income_usd,
             "estimated_income_tax_usd": self.estimated_income_tax_usd,
             "estimated_social_charges_usd": self.estimated_social_charges_usd,

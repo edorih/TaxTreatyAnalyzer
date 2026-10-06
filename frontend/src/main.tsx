@@ -33,6 +33,7 @@ type IncomeTreatment = IncomeTaxRow & {
 };
 
 type CountryTaxResult = {
+  france_household_parts?: number;
   estimated_income_tax_usd?: number;
   estimated_social_charges_usd?: number;
   total_taxable_income_usd?: number;
@@ -153,6 +154,7 @@ function App() {
   const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
   const [isTaxResident, setIsTaxResident] = React.useState(true);
+  const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(2);
   const [lines, setLines] = React.useState<IncomeLine[]>(initialLines);
   const [result, setResult] = React.useState<CalculationSnapshot | null>(null);
   const [isCalculating, setIsCalculating] = React.useState(false);
@@ -172,6 +174,7 @@ function App() {
           filing_status: filingStatus,
           destination_country: selectedCountry,
           destination_tax_resident: isTaxResident,
+          france_household_parts: franceHouseholdParts,
           deduction_mode: "standard",
           income_lines: lines.map((line) => ({
             id: line.id,
@@ -233,6 +236,7 @@ function App() {
           <InputsPage
             filingStatus={filingStatus}
             isTaxResident={isTaxResident}
+            franceHouseholdParts={franceHouseholdParts}
             lines={lines}
             annualIncome={annualIncome}
             calculationError={calculationError}
@@ -240,6 +244,7 @@ function App() {
             onBack={() => setStep("landing")}
             onFilingStatusChange={setFilingStatus}
             onTaxResidentChange={setIsTaxResident}
+            onFranceHouseholdPartsChange={setFranceHouseholdParts}
             onAddIncomeLine={addIncomeLine}
             onUpdateLine={updateLine}
             onDeleteLine={deleteLine}
@@ -329,6 +334,7 @@ function LandingPage({
 function InputsPage({
   filingStatus,
   isTaxResident,
+  franceHouseholdParts,
   lines,
   annualIncome,
   calculationError,
@@ -336,6 +342,7 @@ function InputsPage({
   onBack,
   onFilingStatusChange,
   onTaxResidentChange,
+  onFranceHouseholdPartsChange,
   onAddIncomeLine,
   onUpdateLine,
   onDeleteLine,
@@ -343,6 +350,7 @@ function InputsPage({
 }: {
   filingStatus: FilingStatus;
   isTaxResident: boolean;
+  franceHouseholdParts: number;
   lines: IncomeLine[];
   annualIncome: number;
   calculationError: string | null;
@@ -350,6 +358,7 @@ function InputsPage({
   onBack: () => void;
   onFilingStatusChange: (status: FilingStatus) => void;
   onTaxResidentChange: (value: boolean) => void;
+  onFranceHouseholdPartsChange: (value: number) => void;
   onAddIncomeLine: () => void;
   onUpdateLine: (id: string, patch: Partial<IncomeLine>) => void;
   onDeleteLine: (id: string) => void;
@@ -393,6 +402,19 @@ function InputsPage({
                 <option value="yes">Assume France tax resident</option>
                 <option value="review">Need advisor review</option>
               </select>
+            </label>
+            <label>
+              French household parts
+              <input
+                aria-label="French tax household parts"
+                type="number"
+                min="1"
+                max="20"
+                step="0.5"
+                inputMode="decimal"
+                value={franceHouseholdParts}
+                onChange={(event) => onFranceHouseholdPartsChange(Math.max(1, Number(event.target.value) || 1))}
+              />
             </label>
           </div>
         </section>
@@ -529,6 +551,10 @@ function ResultsPage({
         <div>
           <p className="eyebrow">Estimate summary</p>
           <h2 id="results-heading">France tax estimate</h2>
+          <p className="result-context">
+            Progressive France tax uses {result.country_tax.france_household_parts ?? 1} household part
+            {(result.country_tax.france_household_parts ?? 1) === 1 ? "" : "s"}.
+          </p>
         </div>
         <div className="income-results-table" role="table" aria-label="France tax estimate by income type">
           <div className="income-result-row summary-head" role="row">
