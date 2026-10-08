@@ -249,6 +249,20 @@ label {
   font-weight: 600;
 }
 
+.label-with-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-with-link a {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 input,
 select {
   width: 100%;

@@ -404,7 +404,12 @@ function InputsPage({
               </select>
             </label>
             <label>
-              French household parts
+              <span className="label-with-link">
+                French household parts*
+                <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
+                  How to calculate
+                </a>
+              </span>
               <input
                 aria-label="French tax household parts"
                 type="number"
