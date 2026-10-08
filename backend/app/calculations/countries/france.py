@@ -57,6 +57,7 @@ FRANCE_SOURCES = [
 def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     treatments: list[IncomeTreatment] = []
     household_parts = inputs.france_household_parts
+    normalized_income_types = {normalize_income_type(line.income_type) for line in inputs.income_lines}
     flags: list[AdvisorFlag] = [
         AdvisorFlag(
             code="fx_assumption",
@@ -69,6 +70,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
             message="France 2026 income-year rules may not be final; v1 uses the currently published 2026 schedule for 2025 income as a placeholder.",
         ),
     ]
+    flags.extend(build_residency_immigration_flags(inputs, normalized_income_types))
 
     for line in inputs.income_lines:
         treatment, line_flags = classify_income_line(line, inputs.destination_tax_resident)
@@ -141,10 +143,60 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
             "User is a US citizen and France tax resident for the scenario.",
             "Inputs are monthly USD amounts annualized by multiplying by 12.",
             f"France progressive tax uses {household_parts:g} household part(s) supplied by the user.",
+            f"France visa/stay status supplied by user: {inputs.france_visa_status.replace('_', ' ')}.",
+            f"Work performed while in France supplied by user: {'yes' if inputs.will_work_in_france else 'no'}.",
+            f"French health/social affiliation supplied by user: {inputs.france_health_affiliation.replace('_', ' ')}.",
             "The first France module estimates broad treatment only; it is not a filing calculator.",
         ],
         confidence="draft_country_module",
     )
+
+
+def build_residency_immigration_flags(
+    inputs: ScenarioInputs,
+    normalized_income_types: set[str],
+) -> list[AdvisorFlag]:
+    flags: list[AdvisorFlag] = []
+    has_work_income = bool(normalized_income_types & {"us_employer_salary", "local_employer_salary", "self_employment"})
+    has_retirement_income = bool(normalized_income_types & {"401k", "traditional_ira", "roth_ira", "pension", "annuity", "social_security"})
+
+    if inputs.france_visa_status == "visitor_retiree" and (inputs.will_work_in_france or has_work_income):
+        flags.append(
+            AdvisorFlag(
+                code="france_visitor_work_authorization_review",
+                severity="high",
+                message="Visitor/retiree status with work income or work performed in France needs immigration, payroll, and social-contribution review.",
+            )
+        )
+
+    if inputs.will_work_in_france:
+        flags.append(
+            AdvisorFlag(
+                code="france_work_location_review",
+                severity="high",
+                message="Work performed while physically in France can affect French-source income, employer payroll obligations, and social-contribution exposure.",
+            )
+        )
+
+    if inputs.france_health_affiliation == "unknown":
+        flags.append(
+            AdvisorFlag(
+                code="france_health_affiliation_unknown",
+                severity="medium",
+                message="French health/social-system affiliation is unknown; social-charge and contribution treatment should be reviewed.",
+            )
+        )
+
+    if has_retirement_income and inputs.france_health_affiliation in {"unknown", "french_system"}:
+        flags.append(
+            AdvisorFlag(
+                code="france_pension_social_charge_affiliation_review",
+                severity="medium",
+                message="Retirement and Social Security social-charge exposure can depend on French health/social affiliation and treaty facts.",
+            )
+        )
+
+    return flags
 
 
 def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[IncomeTreatment, list[AdvisorFlag]]:

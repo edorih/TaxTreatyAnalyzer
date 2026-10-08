@@ -6,6 +6,8 @@ import "./styles.css";
 type DestinationCountry = "france" | "italy" | "portugal";
 type FtcBasket = "passive" | "general" | "treaty_resourced" | "not_applicable" | "unknown";
 type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
+type FranceVisaStatus = "visitor_retiree" | "employee" | "self_employed" | "talent_professional" | "student" | "other_unsure";
+type FranceHealthAffiliation = "unknown" | "french_system" | "us_totalization_or_private" | "not_affiliated";
 type AppStep = "modules" | "analyzer" | "optimizer" | "inputs" | "results";
 
 type IncomeLine = {
@@ -146,6 +148,10 @@ function App() {
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
   const [isTaxResident, setIsTaxResident] = React.useState(true);
   const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(2);
+  const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>("visitor_retiree");
+  const [willWorkInFrance, setWillWorkInFrance] = React.useState(false);
+  const [franceHealthAffiliation, setFranceHealthAffiliation] =
+    React.useState<FranceHealthAffiliation>("unknown");
   const [lines, setLines] = React.useState<IncomeLine[]>(initialLines);
   const [result, setResult] = React.useState<CalculationSnapshot | null>(null);
   const [isCalculating, setIsCalculating] = React.useState(false);
@@ -166,6 +172,9 @@ function App() {
           destination_country: selectedCountry,
           destination_tax_resident: isTaxResident,
           france_household_parts: franceHouseholdParts,
+          france_visa_status: franceVisaStatus,
+          will_work_in_france: willWorkInFrance,
+          france_health_affiliation: franceHealthAffiliation,
           deduction_mode: "standard",
           income_lines: lines.map((line) => ({
             id: line.id,
@@ -238,6 +247,9 @@ function App() {
             filingStatus={filingStatus}
             isTaxResident={isTaxResident}
             franceHouseholdParts={franceHouseholdParts}
+            franceVisaStatus={franceVisaStatus}
+            willWorkInFrance={willWorkInFrance}
+            franceHealthAffiliation={franceHealthAffiliation}
             lines={lines}
             annualIncome={annualIncome}
             calculationError={calculationError}
@@ -246,6 +258,9 @@ function App() {
             onFilingStatusChange={setFilingStatus}
             onTaxResidentChange={setIsTaxResident}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
+            onFranceVisaStatusChange={setFranceVisaStatus}
+            onWillWorkInFranceChange={setWillWorkInFrance}
+            onFranceHealthAffiliationChange={setFranceHealthAffiliation}
             onAddIncomeLine={addIncomeLine}
             onUpdateLine={updateLine}
             onDeleteLine={deleteLine}
@@ -419,6 +434,9 @@ function InputsPage({
   filingStatus,
   isTaxResident,
   franceHouseholdParts,
+  franceVisaStatus,
+  willWorkInFrance,
+  franceHealthAffiliation,
   lines,
   annualIncome,
   calculationError,
@@ -427,6 +445,9 @@ function InputsPage({
   onFilingStatusChange,
   onTaxResidentChange,
   onFranceHouseholdPartsChange,
+  onFranceVisaStatusChange,
+  onWillWorkInFranceChange,
+  onFranceHealthAffiliationChange,
   onAddIncomeLine,
   onUpdateLine,
   onDeleteLine,
@@ -435,6 +456,9 @@ function InputsPage({
   filingStatus: FilingStatus;
   isTaxResident: boolean;
   franceHouseholdParts: number;
+  franceVisaStatus: FranceVisaStatus;
+  willWorkInFrance: boolean;
+  franceHealthAffiliation: FranceHealthAffiliation;
   lines: IncomeLine[];
   annualIncome: number;
   calculationError: string | null;
@@ -443,6 +467,9 @@ function InputsPage({
   onFilingStatusChange: (status: FilingStatus) => void;
   onTaxResidentChange: (value: boolean) => void;
   onFranceHouseholdPartsChange: (value: number) => void;
+  onFranceVisaStatusChange: (status: FranceVisaStatus) => void;
+  onWillWorkInFranceChange: (value: boolean) => void;
+  onFranceHealthAffiliationChange: (status: FranceHealthAffiliation) => void;
   onAddIncomeLine: () => void;
   onUpdateLine: (id: string, patch: Partial<IncomeLine>) => void;
   onDeleteLine: (id: string) => void;
@@ -500,6 +527,47 @@ function InputsPage({
                 onChange={(event) => onFranceHouseholdPartsChange(Math.max(1, Number(event.target.value) || 1))}
               />
             </label>
+          </div>
+          <div className="subsection">
+            <h3>Residency and immigration facts</h3>
+            <div className="field-grid">
+              <label>
+                France visa / stay status
+                <select
+                  value={franceVisaStatus}
+                  onChange={(event) => onFranceVisaStatusChange(event.target.value as FranceVisaStatus)}
+                >
+                  <option value="visitor_retiree">Visitor / retiree</option>
+                  <option value="employee">Employee status</option>
+                  <option value="self_employed">Self-employed status</option>
+                  <option value="talent_professional">Talent / professional</option>
+                  <option value="student">Student</option>
+                  <option value="other_unsure">Other / unsure</option>
+                </select>
+              </label>
+              <label>
+                Work performed while in France
+                <select
+                  value={willWorkInFrance ? "yes" : "no"}
+                  onChange={(event) => onWillWorkInFranceChange(event.target.value === "yes")}
+                >
+                  <option value="no">No French work assumed</option>
+                  <option value="yes">Yes, work in France</option>
+                </select>
+              </label>
+              <label>
+                French health / social affiliation
+                <select
+                  value={franceHealthAffiliation}
+                  onChange={(event) => onFranceHealthAffiliationChange(event.target.value as FranceHealthAffiliation)}
+                >
+                  <option value="unknown">Unknown / review needed</option>
+                  <option value="french_system">Affiliated with French system</option>
+                  <option value="us_totalization_or_private">US totalization or private coverage</option>
+                  <option value="not_affiliated">Not affiliated</option>
+                </select>
+              </label>
+            </div>
           </div>
         </section>
 

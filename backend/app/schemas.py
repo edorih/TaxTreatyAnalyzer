@@ -19,6 +19,20 @@ FtcBasket = Literal[
     "not_applicable",
     "unknown",
 ]
+FranceVisaStatus = Literal[
+    "visitor_retiree",
+    "employee",
+    "self_employed",
+    "talent_professional",
+    "student",
+    "other_unsure",
+]
+FranceHealthAffiliation = Literal[
+    "unknown",
+    "french_system",
+    "us_totalization_or_private",
+    "not_affiliated",
+]
 
 
 class AuthRequest(BaseModel):
@@ -53,6 +67,9 @@ class ScenarioInputs(BaseModel):
     destination_country: DestinationCountry
     destination_tax_resident: bool
     france_household_parts: float = Field(default=1, ge=1, le=20)
+    france_visa_status: FranceVisaStatus = "visitor_retiree"
+    will_work_in_france: bool = False
+    france_health_affiliation: FranceHealthAffiliation = "unknown"
     deduction_mode: Literal["standard", "itemized"]
     income_lines: list[IncomeLine]
     deduction_lines: list[DeductionLine] = []
