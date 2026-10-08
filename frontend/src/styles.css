@@ -597,9 +597,11 @@ select:disabled {
 }
 
 .input-notes {
-  margin-top: 8px;
+  margin-top: 32px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   line-height: 1.35;
 }
 
