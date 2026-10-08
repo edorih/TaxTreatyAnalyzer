@@ -142,6 +142,10 @@ function formatSocialChargeCell(row: IncomeTaxRow, rate: number): string {
   return amount === null ? "N/A" : formatUsd(amount);
 }
 
+function isAppStep(value: unknown): value is AppStep {
+  return value === "modules" || value === "analyzer" || value === "optimizer" || value === "inputs" || value === "results";
+}
+
 function App() {
   const [step, setStep] = React.useState<AppStep>("modules");
   const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
@@ -159,6 +163,23 @@ function App() {
 
   const annualIncome = lines.reduce((sum, line) => sum + line.monthlyAmountUsd * 12, 0);
   const advisorFlagCount = result?.country_tax.advisor_flags?.length ?? 0;
+
+  React.useEffect(() => {
+    window.history.replaceState({ appStep: "modules" }, "", window.location.href);
+
+    function handlePopState(event: PopStateEvent) {
+      const nextStep = event.state?.appStep;
+      setStep(isAppStep(nextStep) ? nextStep : "modules");
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  function navigateToStep(nextStep: AppStep) {
+    setStep(nextStep);
+    window.history.pushState({ appStep: nextStep }, "", window.location.href);
+  }
 
   async function submitEstimate() {
     setIsCalculating(true);
@@ -192,7 +213,7 @@ function App() {
       }
 
       setResult(await response.json());
-      setStep("results");
+      navigateToStep("results");
     } catch (error) {
       setCalculationError(error instanceof Error ? error.message : "Calculation failed");
     } finally {
@@ -226,8 +247,8 @@ function App() {
       <section className="workspace" aria-labelledby="app-title">
         {step === "modules" ? (
           <ModuleLandingPage
-            onSelectAnalyzer={() => setStep("analyzer")}
-            onSelectOptimizer={() => setStep("optimizer")}
+            onSelectAnalyzer={() => navigateToStep("analyzer")}
+            onSelectOptimizer={() => navigateToStep("optimizer")}
           />
         ) : null}
 
@@ -235,12 +256,12 @@ function App() {
           <AnalyzerLandingPage
             selectedCountry={selectedCountry}
             onSelectCountry={setSelectedCountry}
-            onContinue={() => setStep("inputs")}
-            onBack={() => setStep("modules")}
+            onContinue={() => navigateToStep("inputs")}
+            onBack={() => navigateToStep("modules")}
           />
         ) : null}
 
-        {step === "optimizer" ? <OptimizerLandingPage onBack={() => setStep("modules")} /> : null}
+        {step === "optimizer" ? <OptimizerLandingPage onBack={() => navigateToStep("modules")} /> : null}
 
         {step === "inputs" ? (
           <InputsPage
@@ -254,7 +275,7 @@ function App() {
             annualIncome={annualIncome}
             calculationError={calculationError}
             isCalculating={isCalculating}
-            onBack={() => setStep("analyzer")}
+            onBack={() => navigateToStep("analyzer")}
             onFilingStatusChange={setFilingStatus}
             onTaxResidentChange={setIsTaxResident}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
@@ -272,8 +293,8 @@ function App() {
           <ResultsPage
             result={result}
             advisorFlagCount={advisorFlagCount}
-            onBack={() => setStep("inputs")}
-            onStartOver={() => setStep("analyzer")}
+            onBack={() => navigateToStep("inputs")}
+            onStartOver={() => navigateToStep("analyzer")}
           />
         ) : null}
       </section>
