@@ -88,6 +88,42 @@ select:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
+.module-landing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 14px;
+  min-height: calc(100vh - 32px);
+  align-content: center;
+}
+
+.module-tile {
+  display: grid;
+  gap: 10px;
+  min-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  color: var(--text);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.module-tile:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent-soft);
+}
+
+.module-tile svg {
+  color: var(--accent);
+}
+
+.module-tile span {
+  align-self: end;
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
 .landing-layout {
   display: grid;
   grid-template-columns: minmax(360px, 1.1fr) minmax(320px, 0.75fr);
@@ -227,11 +263,30 @@ h2 {
 }
 
 .panel,
-.results {
+.results,
+.optimizer-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
+}
+
+.optimizer-panel {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+  color: var(--muted-strong);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.optimizer-panel p {
+  margin: 0;
+}
+
+.optimizer-note {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .field-grid {
@@ -655,6 +710,11 @@ select:disabled {
 
   .landing-layout {
     grid-template-columns: 1fr;
+  }
+
+  .module-landing {
+    grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .landing-copy h1 {

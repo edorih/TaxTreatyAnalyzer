@@ -6,7 +6,7 @@ import "./styles.css";
 type DestinationCountry = "france" | "italy" | "portugal";
 type FtcBasket = "passive" | "general" | "treaty_resourced" | "not_applicable" | "unknown";
 type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
-type AppStep = "landing" | "inputs" | "results";
+type AppStep = "modules" | "analyzer" | "optimizer" | "inputs" | "results";
 
 type IncomeLine = {
   id: string;
@@ -141,7 +141,7 @@ function formatSocialChargeCell(row: IncomeTaxRow, rate: number): string {
 }
 
 function App() {
-  const [step, setStep] = React.useState<AppStep>("landing");
+  const [step, setStep] = React.useState<AppStep>("modules");
   const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
   const [isTaxResident, setIsTaxResident] = React.useState(true);
@@ -215,13 +215,23 @@ function App() {
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="app-title">
-        {step === "landing" ? (
-          <LandingPage
+        {step === "modules" ? (
+          <ModuleLandingPage
+            onSelectAnalyzer={() => setStep("analyzer")}
+            onSelectOptimizer={() => setStep("optimizer")}
+          />
+        ) : null}
+
+        {step === "analyzer" ? (
+          <AnalyzerLandingPage
             selectedCountry={selectedCountry}
             onSelectCountry={setSelectedCountry}
             onContinue={() => setStep("inputs")}
+            onBack={() => setStep("modules")}
           />
         ) : null}
+
+        {step === "optimizer" ? <OptimizerLandingPage onBack={() => setStep("modules")} /> : null}
 
         {step === "inputs" ? (
           <InputsPage
@@ -232,7 +242,7 @@ function App() {
             annualIncome={annualIncome}
             calculationError={calculationError}
             isCalculating={isCalculating}
-            onBack={() => setStep("landing")}
+            onBack={() => setStep("analyzer")}
             onFilingStatusChange={setFilingStatus}
             onTaxResidentChange={setIsTaxResident}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
@@ -248,7 +258,7 @@ function App() {
             result={result}
             advisorFlagCount={advisorFlagCount}
             onBack={() => setStep("inputs")}
-            onStartOver={() => setStep("landing")}
+            onStartOver={() => setStep("analyzer")}
           />
         ) : null}
       </section>
@@ -256,69 +266,132 @@ function App() {
   );
 }
 
-function LandingPage({
+function ModuleLandingPage({
+  onSelectAnalyzer,
+  onSelectOptimizer
+}: {
+  onSelectAnalyzer: () => void;
+  onSelectOptimizer: () => void;
+}) {
+  return (
+    <div className="module-landing" aria-labelledby="app-title">
+      <button className="module-tile" type="button" onClick={onSelectAnalyzer}>
+        <Calculator size={20} aria-hidden="true" />
+        <span id="app-title">Tax Analyzer</span>
+      </button>
+      <button className="module-tile" type="button" onClick={onSelectOptimizer}>
+        <ShieldCheck size={20} aria-hidden="true" />
+        <span>Tax Optimizer</span>
+      </button>
+    </div>
+  );
+}
+
+function AnalyzerLandingPage({
   selectedCountry,
   onSelectCountry,
-  onContinue
+  onContinue,
+  onBack
 }: {
   selectedCountry: DestinationCountry;
   onSelectCountry: (country: DestinationCountry) => void;
   onContinue: () => void;
+  onBack: () => void;
 }) {
   return (
-    <div className="landing-layout">
-      <section className="landing-copy" aria-labelledby="app-title">
-        <p className="eyebrow">US citizen retirement tax estimator</p>
-        <h1 id="app-title">Know Thy Taxes when you move abroad</h1>
-        <p className="lede">
-          Tax Treaty Analyzer is for US citizens exploring retirement or long-term relocation abroad. It estimates
-          destination-country tax exposure, separates local social charges, and highlights treaty areas that deserve
-          advisor review.
-        </p>
-        <div className="output-list" aria-label="Estimator outputs">
-          <div>
-            <Check size={16} aria-hidden="true" />
-            Destination income tax and taxable-income estimate
-          </div>
-          <div>
-            <Check size={16} aria-hidden="true" />
-            Local social charges shown separately from income tax
-          </div>
-          <div>
-            <Check size={16} aria-hidden="true" />
-            Advisor-review flags for treaty-sensitive income
-          </div>
-        </div>
-      </section>
-
-      <section className="country-selector" aria-labelledby="country-heading">
+    <>
+      <header className="topbar">
         <div>
-          <p className="eyebrow">Choose a country</p>
-          <h2 id="country-heading">Start with one destination</h2>
+          <p className="eyebrow">Tax Analyzer</p>
+          <h1 id="app-title">Know Thy Taxes when you move abroad</h1>
         </div>
-        <div className="country-grid">
-          <button
-            className={`country-card ${selectedCountry === "france" ? "selected" : ""}`}
-            type="button"
-            onClick={() => onSelectCountry("france")}
-          >
-            <strong>France</strong>
-            <span>Live estimate</span>
-          </button>
-          <button className="country-card" type="button" disabled>
-            <strong>Italy</strong>
-            <span>Coming later</span>
-          </button>
-          <button className="country-card" type="button" disabled>
-            <strong>Portugal</strong>
-            <span>Coming later</span>
-          </button>
-        </div>
-        <button className="primary-button full-width" type="button" onClick={onContinue}>
-          Continue with France
+        <button className="ghost-button" type="button" onClick={onBack}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Modules
         </button>
+      </header>
+
+      <div className="landing-layout">
+        <section className="landing-copy" aria-labelledby="app-title">
+          <p className="lede">
+            Tax Treaty Analyzer is for US citizens exploring retirement or long-term relocation abroad. It estimates
+            destination-country tax exposure, separates local social charges, and highlights treaty areas that deserve
+            advisor review.
+          </p>
+          <div className="output-list" aria-label="Estimator outputs">
+            <div>
+              <Check size={16} aria-hidden="true" />
+              Destination income tax and taxable-income estimate
+            </div>
+            <div>
+              <Check size={16} aria-hidden="true" />
+              Local social charges shown separately from income tax
+            </div>
+            <div>
+              <Check size={16} aria-hidden="true" />
+              Advisor-review flags for treaty-sensitive income
+            </div>
+          </div>
+        </section>
+
+        <section className="country-selector" aria-labelledby="country-heading">
+          <div>
+            <p className="eyebrow">Choose a country</p>
+            <h2 id="country-heading">Start with one destination</h2>
+          </div>
+          <div className="country-grid">
+            <button
+              className={`country-card ${selectedCountry === "france" ? "selected" : ""}`}
+              type="button"
+              onClick={() => onSelectCountry("france")}
+            >
+              <strong>France</strong>
+              <span>Live estimate</span>
+            </button>
+            <button className="country-card" type="button" disabled>
+              <strong>Italy</strong>
+              <span>Coming later</span>
+            </button>
+            <button className="country-card" type="button" disabled>
+              <strong>Portugal</strong>
+              <span>Coming later</span>
+            </button>
+          </div>
+          <button className="primary-button full-width" type="button" onClick={onContinue}>
+            Continue with France
+          </button>
+        </section>
+      </div>
+    </>
+  );
+}
+
+function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
+  return (
+    <>
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Tax Optimizer</p>
+          <h1 id="app-title">Optimize your US-France tax picture</h1>
+        </div>
+        <button className="ghost-button" type="button" onClick={onBack}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Modules
+        </button>
+      </header>
+
+      <section className="optimizer-panel" aria-labelledby="app-title">
+        <p>
+          Tax Optimizer will suggest common and advisor-review strategies for reducing combined US and French tax
+          exposure. It will focus on timing, income mix, treaty positions, foreign tax credits, social-charge exposure,
+          retirement distributions, investment income, and household-structure assumptions.
+        </p>
+        <p className="optimizer-note">
+          This module is not live yet. Recommendations will be separated into routine planning ideas and higher-risk
+          items that require qualified French/US advisor review.
+        </p>
       </section>
-    </div>
+    </>
   );
 }
 
@@ -423,7 +496,7 @@ function InputsPage({
               <span role="columnheader">Monthly USD</span>
               <span role="columnheader">Source</span>
               <span role="columnheader">FTC basket</span>
-              <span role="columnheader">Remove</span>
+              <span role="columnheader" aria-label="Delete income row" />
             </div>
             {lines.map((line) => (
               <div className="table-row" role="row" key={line.id}>
