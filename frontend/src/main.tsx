@@ -92,22 +92,13 @@ const socialChargeColumns = [
 
 const modeledSocialChargeRate = socialChargeColumns.reduce((sum, column) => sum + column.rate, 0);
 
-const initialLines: IncomeLine[] = [
-  {
-    id: "income-1",
-    incomeType: "401(k)",
-    monthlyAmountUsd: 4000,
-    sourceCountry: "United States",
-    ftcBasket: "general"
-  },
-  {
-    id: "income-2",
-    incomeType: "Brokerage dividends",
-    monthlyAmountUsd: 1200,
-    sourceCountry: "United States",
-    ftcBasket: "passive"
-  }
-];
+const initialLines: IncomeLine[] = incomeTypes.map((incomeType, index) => ({
+  id: `income-${index + 1}`,
+  incomeType,
+  monthlyAmountUsd: 1000,
+  sourceCountry: incomeType === "Local employer salary" ? "France" : "United States",
+  ftcBasket: defaultFtcBasketByIncomeType[incomeType] ?? "unknown"
+}));
 
 function formatUsd(value: number | undefined): string {
   if (value === undefined || Number.isNaN(value)) {
