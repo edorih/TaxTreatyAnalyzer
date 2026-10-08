@@ -656,11 +656,17 @@ function InputsPage({
         </button>
       </section>
       <aside className="input-notes" aria-label="Input notes">
-        Notes: * See{" "}
-        <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
-          Service-Public guidance on calculating French household parts
-        </a>
-        .
+        <p>
+          Notes: * See{" "}
+          <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
+            Service-Public guidance on calculating French household parts
+          </a>
+          .
+        </p>
+        <p>
+          Scope caveat: this tool does not estimate wealth tax, inheritance or gift tax, VAT, corporate tax, or
+          corporate/self-employment social taxes.
+        </p>
       </aside>
     </>
   );
