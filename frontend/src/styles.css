@@ -96,6 +96,12 @@ select:focus-visible {
   align-content: center;
 }
 
+.module-title {
+  grid-column: 1 / -1;
+  margin-bottom: 4px;
+  font-size: 1.55rem;
+}
+
 .module-tile {
   display: grid;
   gap: 10px;
@@ -282,6 +288,29 @@ h2 {
 
 .optimizer-panel p {
   margin: 0;
+}
+
+.optimizer-selector {
+  max-width: 320px;
+  margin-top: 8px;
+}
+
+.optimizer-selection {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  background: var(--surface-subtle);
+  font-size: 0.82rem;
+}
+
+.optimizer-selection strong {
+  color: var(--text);
+}
+
+.optimizer-selection span {
+  color: var(--muted);
 }
 
 .optimizer-note {

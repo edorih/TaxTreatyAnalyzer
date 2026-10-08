@@ -275,9 +275,12 @@ function ModuleLandingPage({
 }) {
   return (
     <div className="module-landing" aria-labelledby="app-title">
+      <h1 className="module-title" id="app-title">
+        Know Thy Taxes...when you move abroad
+      </h1>
       <button className="module-tile" type="button" onClick={onSelectAnalyzer}>
         <Calculator size={20} aria-hidden="true" />
-        <span id="app-title">Tax Analyzer</span>
+        <span>Tax Analyzer</span>
       </button>
       <button className="module-tile" type="button" onClick={onSelectOptimizer}>
         <ShieldCheck size={20} aria-hidden="true" />
@@ -303,7 +306,7 @@ function AnalyzerLandingPage({
       <header className="topbar">
         <div>
           <p className="eyebrow">Tax Analyzer</p>
-          <h1 id="app-title">Know Thy Taxes when you move abroad</h1>
+          <h1 id="app-title">Analyze your taxes by country</h1>
         </div>
         <button className="ghost-button" type="button" onClick={onBack}>
           <ArrowLeft size={16} aria-hidden="true" />
@@ -367,12 +370,14 @@ function AnalyzerLandingPage({
 }
 
 function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
+  const [selectedPair, setSelectedPair] = React.useState("");
+
   return (
     <>
       <header className="topbar">
         <div>
           <p className="eyebrow">Tax Optimizer</p>
-          <h1 id="app-title">Optimize your US-France tax picture</h1>
+          <h1 id="app-title">Optimize your cross-border tax picture</h1>
         </div>
         <button className="ghost-button" type="button" onClick={onBack}>
           <ArrowLeft size={16} aria-hidden="true" />
@@ -382,10 +387,25 @@ function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
 
       <section className="optimizer-panel" aria-labelledby="app-title">
         <p>
-          Tax Optimizer will suggest common and advisor-review strategies for reducing combined US and French tax
+          Tax Optimizer will suggest common and advisor-review strategies for reducing combined US and destination-country tax
           exposure. It will focus on timing, income mix, treaty positions, foreign tax credits, social-charge exposure,
           retirement distributions, investment income, and household-structure assumptions.
         </p>
+        <label className="optimizer-selector">
+          Treaty pair
+          <select value={selectedPair} onChange={(event) => setSelectedPair(event.target.value)}>
+            <option value="">Select a treaty pair</option>
+            <option value="US-France">US-France</option>
+            <option value="US-Spain">US-Spain</option>
+            <option value="US-Portugal">US-Portugal</option>
+          </select>
+        </label>
+        {selectedPair ? (
+          <div className="optimizer-selection" role="status">
+            <strong>{selectedPair}</strong>
+            <span>Next step: define the optimization scope and country-specific strategy categories.</span>
+          </div>
+        ) : null}
         <p className="optimizer-note">
           This module is not live yet. Recommendations will be separated into routine planning ideas and higher-risk
           items that require qualified French/US advisor review.
