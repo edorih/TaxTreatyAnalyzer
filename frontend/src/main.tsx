@@ -404,12 +404,7 @@ function InputsPage({
               </select>
             </label>
             <label>
-              <span className="label-with-link">
-                French household parts*
-                <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
-                  How to calculate
-                </a>
-              </span>
+              French household parts*
               <input
                 aria-label="French tax household parts"
                 type="number"
@@ -508,6 +503,13 @@ function InputsPage({
           {isCalculating ? "Calculating" : "Calculate tax estimates"}
         </button>
       </section>
+      <aside className="input-notes" aria-label="Input notes">
+        Notes: * See{" "}
+        <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
+          Service-Public guidance on calculating French household parts
+        </a>
+        .
+      </aside>
     </>
   );
 }

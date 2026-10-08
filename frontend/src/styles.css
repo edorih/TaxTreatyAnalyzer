@@ -249,20 +249,6 @@ label {
   font-weight: 600;
 }
 
-.label-with-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.label-with-link a {
-  color: var(--accent);
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 input,
 select {
   width: 100%;
@@ -608,6 +594,17 @@ select:disabled {
   color: var(--muted);
   font-size: 0.66rem;
   line-height: 1.35;
+}
+
+.input-notes {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.input-notes a {
+  font-weight: 600;
 }
 
 .fine-print p {
