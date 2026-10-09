@@ -804,27 +804,26 @@ function ResultsPage({
             <div className="social-charge-row social-charge-head" role="row">
               <span role="columnheader">Income type</span>
               <span role="columnheader">Income value</span>
-              <span role="columnheader">Total social charges</span>
               {socialChargeColumns.map((column) => (
                 <span role="columnheader" key={column.key}>
                   {column.label}
                 </span>
               ))}
+              <span role="columnheader">Total social charges</span>
             </div>
             {incomeRows.map((row) => (
               <div className="social-charge-row" role="row" key={`${row.income_line_id}-social-charges`}>
                 <span>{row.income_type}</span>
                 <strong>{formatUsd(row.annual_amount_usd)}</strong>
-                <strong>{formatUsd(row.france_social_charges_usd)}</strong>
                 {socialChargeColumns.map((column) => (
                   <strong key={column.key}>{formatSocialChargeCell(row, column.rate)}</strong>
                 ))}
+                <strong>{formatUsd(row.france_social_charges_usd)}</strong>
               </div>
             ))}
             <div className="social-charge-row total-row" role="row">
               <span>Total</span>
               <strong>{formatUsd(rowTotals.annualIncome)}</strong>
-              <strong>{formatUsd(rowTotals.socialCharges)}</strong>
               {socialChargeColumns.map((column) => {
                 const total = incomeRows.reduce((sum, row) => {
                   const amount = socialChargeComponentAmount(row, column.rate);
@@ -832,6 +831,7 @@ function ResultsPage({
                 }, 0);
                 return <strong key={column.key}>{column.rate > 0 ? formatUsd(total) : "N/A"}</strong>;
               })}
+              <strong>{formatUsd(rowTotals.socialCharges)}</strong>
             </div>
           </div>
         </details>
