@@ -661,7 +661,8 @@ select:disabled {
 
 .flag-item {
   display: grid;
-  gap: 3px;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
   border-top: 1px solid var(--border);
   padding-top: 7px;
   font-size: 0.78rem;
@@ -674,8 +675,24 @@ select:disabled {
 }
 
 .flag-item strong {
+  display: block;
   color: var(--warning);
   font-size: 0.68rem;
+}
+
+.flag-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: var(--surface-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .source-list a {
