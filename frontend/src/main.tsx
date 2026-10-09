@@ -142,6 +142,20 @@ function formatSocialChargeCell(row: IncomeTaxRow, rate: number): string {
   return amount === null ? "N/A" : formatUsd(amount);
 }
 
+function advisorSeverityRank(severity: string): number {
+  const normalizedSeverity = severity.toLowerCase();
+  if (normalizedSeverity === "high") {
+    return 3;
+  }
+  if (normalizedSeverity === "medium") {
+    return 2;
+  }
+  if (normalizedSeverity === "low") {
+    return 1;
+  }
+  return 0;
+}
+
 function isAppStep(value: unknown): value is AppStep {
   return value === "modules" || value === "analyzer" || value === "optimizer" || value === "inputs" || value === "results";
 }
@@ -714,6 +728,9 @@ function ResultsPage({
     }),
     { annualIncome: 0, taxableIncome: 0, incomeTax: 0, socialCharges: 0 }
   );
+  const sortedAdvisorFlags = [...(result.country_tax.advisor_flags ?? [])].sort(
+    (a, b) => advisorSeverityRank(b.severity) - advisorSeverityRank(a.severity)
+  );
 
   return (
     <>
@@ -781,12 +798,13 @@ function ResultsPage({
             </span>
           </div>
         </div>
-        <section className="detail-panel" aria-labelledby="social-charges-heading">
-          <h2 id="social-charges-heading">French social charges</h2>
+        <details className="detail-panel collapsible-panel">
+          <summary id="social-charges-heading">Would you like to see the breakdown of the French social charges?</summary>
           <div className="social-charge-table" role="table" aria-label="French social charges by income type">
             <div className="social-charge-row social-charge-head" role="row">
               <span role="columnheader">Income type</span>
               <span role="columnheader">Income value</span>
+              <span role="columnheader">Total social charges</span>
               {socialChargeColumns.map((column) => (
                 <span role="columnheader" key={column.key}>
                   {column.label}
@@ -797,6 +815,7 @@ function ResultsPage({
               <div className="social-charge-row" role="row" key={`${row.income_line_id}-social-charges`}>
                 <span>{row.income_type}</span>
                 <strong>{formatUsd(row.annual_amount_usd)}</strong>
+                <strong>{formatUsd(row.france_social_charges_usd)}</strong>
                 {socialChargeColumns.map((column) => (
                   <strong key={column.key}>{formatSocialChargeCell(row, column.rate)}</strong>
                 ))}
@@ -805,6 +824,7 @@ function ResultsPage({
             <div className="social-charge-row total-row" role="row">
               <span>Total</span>
               <strong>{formatUsd(rowTotals.annualIncome)}</strong>
+              <strong>{formatUsd(rowTotals.socialCharges)}</strong>
               {socialChargeColumns.map((column) => {
                 const total = incomeRows.reduce((sum, row) => {
                   const amount = socialChargeComponentAmount(row, column.rate);
@@ -814,20 +834,23 @@ function ResultsPage({
               })}
             </div>
           </div>
-        </section>
+        </details>
 
         <div className="detail-grid">
-          <section className="detail-panel" aria-labelledby="advisor-flags-heading">
-            <h2 id="advisor-flags-heading">Advisor-review flags</h2>
+          <details className="detail-panel collapsible-panel">
+            <summary id="advisor-flags-heading">Advisor review recommended - click for details</summary>
             <div className="flag-list">
-              {(result.country_tax.advisor_flags ?? []).map((flag) => (
+              {sortedAdvisorFlags.map((flag, index) => (
                 <div className="flag-item" key={`${flag.code}-${flag.income_line_id ?? "scenario"}`}>
-                  <strong>{flag.severity.toUpperCase()}</strong>
-                  <span>{flag.message}</span>
+                  <span className="flag-number">{index + 1}</span>
+                  <div>
+                    <strong>{flag.severity.toUpperCase()}</strong>
+                    <span>{flag.message}</span>
+                  </div>
                 </div>
               ))}
             </div>
-          </section>
+          </details>
         </div>
 
         <section className="detail-panel" aria-labelledby="sources-heading">
