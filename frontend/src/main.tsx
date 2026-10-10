@@ -104,6 +104,7 @@ type CalculationSnapshot = {
 };
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const appStateStorageKey = "know-thy-taxes-estimator-state";
 
 const incomeTypes = [
   "US employer salary",
@@ -276,19 +277,74 @@ function isAppStep(value: unknown): value is AppStep {
   return value === "modules" || value === "analyzer" || value === "optimizer" || value === "inputs" || value === "results";
 }
 
+function stepFromPath(pathname: string): AppStep {
+  if (pathname === "/estimate/results") {
+    return "results";
+  }
+  if (pathname === "/estimate/inputs") {
+    return "inputs";
+  }
+  if (pathname === "/estimate") {
+    return "analyzer";
+  }
+  if (pathname === "/optimizer") {
+    return "optimizer";
+  }
+  return "modules";
+}
+
+function pathForStep(step: AppStep): string {
+  if (step === "results") {
+    return "/estimate/results";
+  }
+  if (step === "inputs") {
+    return "/estimate/inputs";
+  }
+  if (step === "analyzer") {
+    return "/estimate";
+  }
+  if (step === "optimizer") {
+    return "/optimizer";
+  }
+  return "/";
+}
+
+function readStoredAppState(): {
+  selectedCountry?: DestinationCountry;
+  filingStatus?: FilingStatus;
+  usState?: UsStateCode;
+  isTaxResident?: boolean;
+  franceHouseholdParts?: number;
+  franceVisaStatus?: FranceVisaStatus;
+  willWorkInFrance?: boolean;
+  franceHealthAffiliation?: FranceHealthAffiliation;
+  lines?: IncomeLine[];
+  result?: CalculationSnapshot | null;
+} {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(appStateStorageKey) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
 function App() {
-  const [step, setStep] = React.useState<AppStep>("modules");
-  const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
-  const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
-  const [usState, setUsState] = React.useState<UsStateCode>("TX");
-  const [isTaxResident, setIsTaxResident] = React.useState(true);
-  const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(2);
-  const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>("visitor_retiree");
-  const [willWorkInFrance, setWillWorkInFrance] = React.useState(false);
+  const storedAppState = React.useMemo(() => readStoredAppState(), []);
+  const [step, setStep] = React.useState<AppStep>(() => {
+    const pathStep = stepFromPath(window.location.pathname);
+    return pathStep === "results" && !storedAppState.result ? "inputs" : pathStep;
+  });
+  const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>(storedAppState.selectedCountry ?? "france");
+  const [filingStatus, setFilingStatus] = React.useState<FilingStatus>(storedAppState.filingStatus ?? "married_filing_jointly");
+  const [usState, setUsState] = React.useState<UsStateCode>(storedAppState.usState ?? "TX");
+  const [isTaxResident, setIsTaxResident] = React.useState(storedAppState.isTaxResident ?? true);
+  const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(storedAppState.franceHouseholdParts ?? 2);
+  const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>(storedAppState.franceVisaStatus ?? "visitor_retiree");
+  const [willWorkInFrance, setWillWorkInFrance] = React.useState(storedAppState.willWorkInFrance ?? false);
   const [franceHealthAffiliation, setFranceHealthAffiliation] =
-    React.useState<FranceHealthAffiliation>("unknown");
-  const [lines, setLines] = React.useState<IncomeLine[]>(initialLines);
-  const [result, setResult] = React.useState<CalculationSnapshot | null>(null);
+    React.useState<FranceHealthAffiliation>(storedAppState.franceHealthAffiliation ?? "unknown");
+  const [lines, setLines] = React.useState<IncomeLine[]>(storedAppState.lines ?? initialLines);
+  const [result, setResult] = React.useState<CalculationSnapshot | null>(storedAppState.result ?? null);
   const [isCalculating, setIsCalculating] = React.useState(false);
   const [calculationError, setCalculationError] = React.useState<string | null>(null);
 
@@ -296,20 +352,49 @@ function App() {
   const advisorFlagCount = result?.country_tax.advisor_flags?.length ?? 0;
 
   React.useEffect(() => {
-    window.history.replaceState({ appStep: "modules" }, "", window.location.href);
+    window.history.replaceState({ appStep: step }, "", pathForStep(step));
 
     function handlePopState(event: PopStateEvent) {
       const nextStep = event.state?.appStep;
-      setStep(isAppStep(nextStep) ? nextStep : "modules");
+      setStep(isAppStep(nextStep) ? nextStep : stepFromPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [step]);
+
+  React.useEffect(() => {
+    window.sessionStorage.setItem(
+      appStateStorageKey,
+      JSON.stringify({
+        selectedCountry,
+        filingStatus,
+        usState,
+        isTaxResident,
+        franceHouseholdParts,
+        franceVisaStatus,
+        willWorkInFrance,
+        franceHealthAffiliation,
+        lines,
+        result
+      })
+    );
+  }, [
+    selectedCountry,
+    filingStatus,
+    usState,
+    isTaxResident,
+    franceHouseholdParts,
+    franceVisaStatus,
+    willWorkInFrance,
+    franceHealthAffiliation,
+    lines,
+    result
+  ]);
 
   function navigateToStep(nextStep: AppStep) {
     setStep(nextStep);
-    window.history.pushState({ appStep: nextStep }, "", window.location.href);
+    window.history.pushState({ appStep: nextStep }, "", pathForStep(nextStep));
   }
 
   async function submitEstimate() {
