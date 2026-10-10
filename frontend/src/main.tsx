@@ -867,7 +867,7 @@ function ResultsPage({
           <p className="eyebrow">France estimate</p>
           <h1 id="app-title">Tax estimate output</h1>
           <p className="output-scope-note">
-            US federal tax, Form 1116 foreign tax credits, and US state income tax are not estimated in this version.
+            Note: US federal tax, US state income tax and Form 1116 foreign tax credits are still under development.
           </p>
         </div>
         <div className="toolbar-actions">
@@ -981,8 +981,8 @@ function ResultsPage({
           </details>
         </div>
 
-        <section className="detail-panel" aria-labelledby="sources-heading">
-          <h2 id="sources-heading">Sources</h2>
+        <details className="detail-panel collapsible-panel">
+          <summary id="sources-heading">Sources</summary>
           <div className="source-list">
             {(result.country_tax.sources ?? []).map((source) => (
               <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
@@ -990,7 +990,7 @@ function ResultsPage({
               </a>
             ))}
           </div>
-        </section>
+        </details>
         <aside className="fine-print" aria-label="Advisor review notice">
           <ShieldCheck size={12} aria-hidden="true" />
           <p>
