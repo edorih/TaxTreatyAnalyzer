@@ -158,4 +158,28 @@ def test_france_module_applies_user_supplied_household_parts():
     result = calculate_france_tax(inputs).to_dict()
 
     assert result["france_household_parts"] == 2
+    assert result["estimated_income_tax_usd"] == 3691.26
+
+
+def test_france_module_uses_user_supplied_exchange_rate_for_progressive_tax():
+    inputs = ScenarioInputs(
+        filing_status="married_filing_jointly",
+        destination_country="france",
+        destination_tax_resident=True,
+        france_household_parts=2,
+        usd_per_eur=1,
+        deduction_mode="standard",
+        income_lines=[
+            IncomeLine(
+                id="salary",
+                income_type="US employer salary",
+                monthly_amount_usd=5000,
+                source_country="United States",
+                ftc_basket="general",
+            )
+        ],
+    )
+
+    result = calculate_france_tax(inputs).to_dict()
+
     assert result["estimated_income_tax_usd"] == 4330.96

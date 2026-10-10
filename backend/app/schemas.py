@@ -120,6 +120,7 @@ class ScenarioInputs(BaseModel):
     destination_country: DestinationCountry
     destination_tax_resident: bool
     france_household_parts: float = Field(default=1, ge=1, le=20)
+    usd_per_eur: float = Field(default=1.15, gt=0)
     france_visa_status: FranceVisaStatus = "visitor_retiree"
     will_work_in_france: bool = False
     france_health_affiliation: FranceHealthAffiliation = "unknown"

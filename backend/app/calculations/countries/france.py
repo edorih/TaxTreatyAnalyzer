@@ -57,13 +57,9 @@ FRANCE_SOURCES = [
 def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     treatments: list[IncomeTreatment] = []
     household_parts = inputs.france_household_parts
+    usd_per_eur = inputs.usd_per_eur
     normalized_income_types = {normalize_income_type(line.income_type) for line in inputs.income_lines}
     flags: list[AdvisorFlag] = [
-        AdvisorFlag(
-            code="fx_assumption",
-            severity="medium",
-            message="France brackets are EUR-denominated; v1 assumes 1 USD = 1 EUR until an exchange-rate model is added.",
-        ),
         AdvisorFlag(
             code="france_2026_income_year_gap",
             severity="medium",
@@ -82,7 +78,9 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         for treatment in treatments
         if treatment.treaty_position in {"france_residence_taxable_progressive", "france_taxable_uncertain_progressive"}
     )
-    progressive_tax = calculate_progressive_tax(progressive_base, household_parts)
+    progressive_base_eur = progressive_base / usd_per_eur
+    progressive_tax_eur = calculate_progressive_tax(progressive_base_eur, household_parts)
+    progressive_tax = progressive_tax_eur * usd_per_eur
     flat_income_tax = sum(
         treatment.france_income_tax_usd
         for treatment in treatments
@@ -107,6 +105,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
             confidence="medium",
             notes=[
                 "Applied to employment, pension-like, and other progressively taxed income classified as France-taxable.",
+                f"Converts USD inputs to EUR using {usd_per_eur:g} USD per EUR for bracket calculation.",
                 f"Uses {household_parts:g} French tax household part(s) for quotient familial.",
             ],
         ),
@@ -142,6 +141,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         assumptions=[
             "User is a US citizen and France tax resident for the scenario.",
             "Inputs are monthly USD amounts annualized by multiplying by 12.",
+            f"France progressive brackets are EUR-denominated; v1 uses the user-supplied exchange rate of {usd_per_eur:g} USD per EUR.",
             f"France progressive tax uses {household_parts:g} household part(s) supplied by the user.",
             f"France visa/stay status supplied by user: {inputs.france_visa_status.replace('_', ' ')}.",
             f"Work performed while in France supplied by user: {'yes' if inputs.will_work_in_france else 'no'}.",

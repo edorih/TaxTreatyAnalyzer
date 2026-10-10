@@ -315,6 +315,7 @@ function readStoredAppState(): {
   usState?: UsStateCode;
   isTaxResident?: boolean;
   franceHouseholdParts?: number;
+  usdPerEur?: number;
   franceVisaStatus?: FranceVisaStatus;
   willWorkInFrance?: boolean;
   franceHealthAffiliation?: FranceHealthAffiliation;
@@ -339,6 +340,7 @@ function App() {
   const [usState, setUsState] = React.useState<UsStateCode>(storedAppState.usState ?? "TX");
   const [isTaxResident, setIsTaxResident] = React.useState(storedAppState.isTaxResident ?? true);
   const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(storedAppState.franceHouseholdParts ?? 2);
+  const [usdPerEur, setUsdPerEur] = React.useState(storedAppState.usdPerEur ?? 1.15);
   const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>(storedAppState.franceVisaStatus ?? "visitor_retiree");
   const [willWorkInFrance, setWillWorkInFrance] = React.useState(storedAppState.willWorkInFrance ?? false);
   const [franceHealthAffiliation, setFranceHealthAffiliation] =
@@ -372,6 +374,7 @@ function App() {
         usState,
         isTaxResident,
         franceHouseholdParts,
+        usdPerEur,
         franceVisaStatus,
         willWorkInFrance,
         franceHealthAffiliation,
@@ -385,6 +388,7 @@ function App() {
     usState,
     isTaxResident,
     franceHouseholdParts,
+    usdPerEur,
     franceVisaStatus,
     willWorkInFrance,
     franceHealthAffiliation,
@@ -410,6 +414,7 @@ function App() {
           destination_country: selectedCountry,
           destination_tax_resident: isTaxResident,
           france_household_parts: franceHouseholdParts,
+          usd_per_eur: usdPerEur,
           france_visa_status: franceVisaStatus,
           will_work_in_france: willWorkInFrance,
           france_health_affiliation: franceHealthAffiliation,
@@ -486,6 +491,7 @@ function App() {
             usState={usState}
             isTaxResident={isTaxResident}
             franceHouseholdParts={franceHouseholdParts}
+            usdPerEur={usdPerEur}
             franceVisaStatus={franceVisaStatus}
             willWorkInFrance={willWorkInFrance}
             franceHealthAffiliation={franceHealthAffiliation}
@@ -498,6 +504,7 @@ function App() {
             onUsStateChange={setUsState}
             onTaxResidentChange={setIsTaxResident}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
+            onUsdPerEurChange={setUsdPerEur}
             onFranceVisaStatusChange={setFranceVisaStatus}
             onWillWorkInFranceChange={setWillWorkInFrance}
             onFranceHealthAffiliationChange={setFranceHealthAffiliation}
@@ -675,6 +682,7 @@ function InputsPage({
   usState,
   isTaxResident,
   franceHouseholdParts,
+  usdPerEur,
   franceVisaStatus,
   willWorkInFrance,
   franceHealthAffiliation,
@@ -687,6 +695,7 @@ function InputsPage({
   onUsStateChange,
   onTaxResidentChange,
   onFranceHouseholdPartsChange,
+  onUsdPerEurChange,
   onFranceVisaStatusChange,
   onWillWorkInFranceChange,
   onFranceHealthAffiliationChange,
@@ -699,6 +708,7 @@ function InputsPage({
   usState: UsStateCode;
   isTaxResident: boolean;
   franceHouseholdParts: number;
+  usdPerEur: number;
   franceVisaStatus: FranceVisaStatus;
   willWorkInFrance: boolean;
   franceHealthAffiliation: FranceHealthAffiliation;
@@ -711,6 +721,7 @@ function InputsPage({
   onUsStateChange: (state: UsStateCode) => void;
   onTaxResidentChange: (value: boolean) => void;
   onFranceHouseholdPartsChange: (value: number) => void;
+  onUsdPerEurChange: (value: number) => void;
   onFranceVisaStatusChange: (status: FranceVisaStatus) => void;
   onWillWorkInFranceChange: (value: boolean) => void;
   onFranceHealthAffiliationChange: (status: FranceHealthAffiliation) => void;
@@ -773,6 +784,18 @@ function InputsPage({
                 inputMode="decimal"
                 value={franceHouseholdParts}
                 onChange={(event) => onFranceHouseholdPartsChange(Math.max(1, Number(event.target.value) || 1))}
+              />
+            </label>
+            <label>
+              USD per EUR
+              <input
+                aria-label="US dollars per euro"
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputMode="decimal"
+                value={usdPerEur}
+                onChange={(event) => onUsdPerEurChange(Math.max(0.01, Number(event.target.value) || 1.15))}
               />
             </label>
           </div>
