@@ -775,7 +775,7 @@ function InputsPage({
               </select>
             </label>
             <label>
-              French tax residency**
+              French tax residency*
               <select
                 value={franceTaxResidencyStatus}
                 onChange={(event) => onFranceTaxResidencyStatusChange(event.target.value as FranceTaxResidencyStatus)}
@@ -785,7 +785,7 @@ function InputsPage({
               </select>
             </label>
             <label>
-              French household parts*
+              French household parts**
               <input
                 aria-label="French tax household parts"
                 type="number"
@@ -940,17 +940,17 @@ function InputsPage({
       <aside className="input-notes" aria-label="Input notes">
         <p>
           Notes: * See{" "}
-          <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
-            Service-Public guidance on calculating French household parts
-          </a>
-          .
-        </p>
-        <p>
-          ** See{" "}
           <a href="https://www.impots.gouv.fr/resident-de-france" target="_blank" rel="noreferrer">
             impots.gouv.fr guidance on French tax residence criteria
           </a>
           ; consult a tax professional if unsure.
+        </p>
+        <p>
+          ** See{" "}
+          <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
+            Service-Public guidance on calculating French household parts
+          </a>
+          .
         </p>
         <p>
           Scope caveat: this tool does not estimate wealth tax, inheritance or gift tax, VAT, corporate tax, or
