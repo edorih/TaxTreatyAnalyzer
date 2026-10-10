@@ -59,13 +59,7 @@ type UsStateCode =
   | "WY";
 type FranceVisaStatus = "visitor_retiree" | "employee" | "self_employed" | "talent_professional" | "student" | "other_unsure";
 type FranceHealthAffiliation = "unknown" | "french_system" | "us_totalization_or_private" | "not_affiliated";
-type FranceTaxResidencyStatus =
-  | "resident_home_or_main_stay"
-  | "resident_principal_work"
-  | "resident_economic_interests"
-  | "resident_treaty_tiebreaker"
-  | "not_resident"
-  | "unsure_review";
+type FranceTaxResidencyStatus = "resident" | "not_resident";
 type AppStep = "modules" | "analyzer" | "optimizer" | "inputs" | "results";
 
 type IncomeLine = {
@@ -336,6 +330,10 @@ function readStoredAppState(): {
   }
 }
 
+function normalizeFranceTaxResidencyStatus(value: unknown): FranceTaxResidencyStatus {
+  return value === "not_resident" ? "not_resident" : "resident";
+}
+
 function App() {
   const storedAppState = React.useMemo(() => readStoredAppState(), []);
   const [step, setStep] = React.useState<AppStep>(() => {
@@ -346,7 +344,7 @@ function App() {
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>(storedAppState.filingStatus ?? "married_filing_jointly");
   const [usState, setUsState] = React.useState<UsStateCode>(storedAppState.usState ?? "TX");
   const [franceTaxResidencyStatus, setFranceTaxResidencyStatus] = React.useState<FranceTaxResidencyStatus>(
-    storedAppState.franceTaxResidencyStatus ?? "resident_home_or_main_stay"
+    normalizeFranceTaxResidencyStatus(storedAppState.franceTaxResidencyStatus)
   );
   const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(storedAppState.franceHouseholdParts ?? 2);
   const [usdPerEur, setUsdPerEur] = React.useState(storedAppState.usdPerEur ?? 1.15);
@@ -361,7 +359,7 @@ function App() {
 
   const annualIncome = lines.reduce((sum, line) => sum + line.monthlyAmountUsd * 12, 0);
   const advisorFlagCount = result?.country_tax.advisor_flags?.length ?? 0;
-  const isTaxResident = franceTaxResidencyStatus.startsWith("resident_");
+  const isTaxResident = franceTaxResidencyStatus === "resident";
 
   React.useEffect(() => {
     window.history.replaceState({ appStep: step }, "", pathForStep(step));
@@ -782,12 +780,8 @@ function InputsPage({
                 value={franceTaxResidencyStatus}
                 onChange={(event) => onFranceTaxResidencyStatusChange(event.target.value as FranceTaxResidencyStatus)}
               >
-                <option value="resident_home_or_main_stay">French resident - home or main stay in France</option>
-                <option value="resident_principal_work">French resident - principal work in France</option>
-                <option value="resident_economic_interests">French resident - economic interests in France</option>
-                <option value="resident_treaty_tiebreaker">French resident - treaty tie-breaker</option>
+                <option value="resident">French tax resident</option>
                 <option value="not_resident">Not French tax resident</option>
-                <option value="unsure_review">Unsure / professional review needed</option>
               </select>
             </label>
             <label>
@@ -956,7 +950,7 @@ function InputsPage({
           <a href="https://www.impots.gouv.fr/resident-de-france" target="_blank" rel="noreferrer">
             impots.gouv.fr guidance on French tax residence criteria
           </a>
-          .
+          ; consult a tax professional if unsure.
         </p>
         <p>
           Scope caveat: this tool does not estimate wealth tax, inheritance or gift tax, VAT, corporate tax, or
