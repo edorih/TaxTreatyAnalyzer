@@ -13,7 +13,7 @@ def calculate_scenario(inputs: ScenarioInputs) -> dict:
     return {
         "tax_year": 2026,
         "annual_income_usd": annual_income,
-        "state": {"code": "TX", "estimated_income_tax_usd": 0, "notes": ["Texas has no individual state income tax."]},
+        "state": calculate_state_tax(inputs),
         "ftc_baskets": basket_summary,
         "country": country_notes,
         "country_tax": country_tax,
@@ -22,6 +22,24 @@ def calculate_scenario(inputs: ScenarioInputs) -> dict:
             "Treaty-resourced income, Roth treatment, pensions, and Social Security should be reviewed by a qualified advisor.",
         ],
         "confidence": "draft_foundation",
+    }
+
+
+def calculate_state_tax(inputs: ScenarioInputs) -> dict:
+    if inputs.us_state == "TX":
+        return {
+            "code": "TX",
+            "estimated_income_tax_usd": 0,
+            "notes": ["Texas has no individual state income tax."],
+        }
+
+    return {
+        "code": inputs.us_state,
+        "estimated_income_tax_usd": None,
+        "notes": [
+            f"{inputs.us_state} state income tax is not modeled yet.",
+            "State-specific residency, sourcing, deductions, credits, and retirement-income rules are deferred.",
+        ],
     }
 
 

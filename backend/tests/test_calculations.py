@@ -30,8 +30,35 @@ def test_calculate_scenario_annualizes_income_and_groups_baskets():
     result = calculate_scenario(inputs)
 
     assert result["annual_income_usd"] == 18000
+    assert result["state"]["code"] == "TX"
+    assert result["state"]["estimated_income_tax_usd"] == 0
     assert result["ftc_baskets"]["general"]["annual_income_usd"] == 12000
     assert result["ftc_baskets"]["passive"]["annual_income_usd"] == 6000
+
+
+def test_calculate_scenario_flags_unmodeled_states():
+    inputs = ScenarioInputs(
+        filing_status="single",
+        us_state="CA",
+        destination_country="france",
+        destination_tax_resident=True,
+        deduction_mode="standard",
+        income_lines=[
+            IncomeLine(
+                id="salary",
+                income_type="US employer salary",
+                monthly_amount_usd=1000,
+                source_country="United States",
+                ftc_basket="general",
+            )
+        ],
+    )
+
+    result = calculate_scenario(inputs)
+
+    assert result["state"]["code"] == "CA"
+    assert result["state"]["estimated_income_tax_usd"] is None
+    assert "not modeled yet" in result["state"]["notes"][0]
 
 
 def test_france_progressive_tax_uses_2026_brackets():

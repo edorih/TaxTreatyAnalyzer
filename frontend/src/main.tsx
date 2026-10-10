@@ -6,6 +6,57 @@ import "./styles.css";
 type DestinationCountry = "france" | "italy" | "portugal";
 type FtcBasket = "passive" | "general" | "treaty_resourced" | "not_applicable" | "unknown";
 type FilingStatus = "single" | "married_filing_jointly" | "married_filing_separately" | "head_of_household";
+type UsStateCode =
+  | "AL"
+  | "AK"
+  | "AZ"
+  | "AR"
+  | "CA"
+  | "CO"
+  | "CT"
+  | "DE"
+  | "FL"
+  | "GA"
+  | "HI"
+  | "ID"
+  | "IL"
+  | "IN"
+  | "IA"
+  | "KS"
+  | "KY"
+  | "LA"
+  | "ME"
+  | "MD"
+  | "MA"
+  | "MI"
+  | "MN"
+  | "MS"
+  | "MO"
+  | "MT"
+  | "NE"
+  | "NV"
+  | "NH"
+  | "NJ"
+  | "NM"
+  | "NY"
+  | "NC"
+  | "ND"
+  | "OH"
+  | "OK"
+  | "OR"
+  | "PA"
+  | "RI"
+  | "SC"
+  | "SD"
+  | "TN"
+  | "TX"
+  | "UT"
+  | "VT"
+  | "VA"
+  | "WA"
+  | "WV"
+  | "WI"
+  | "WY";
 type FranceVisaStatus = "visitor_retiree" | "employee" | "self_employed" | "talent_professional" | "student" | "other_unsure";
 type FranceHealthAffiliation = "unknown" | "french_system" | "us_totalization_or_private" | "not_affiliated";
 type AppStep = "modules" | "analyzer" | "optimizer" | "inputs" | "results";
@@ -83,6 +134,59 @@ const defaultFtcBasketByIncomeType: Record<string, FtcBasket> = {
   "Rental income": "passive",
   "Qualified 529 withdrawal for child": "not_applicable"
 };
+
+const usStates: Array<{ code: UsStateCode; name: string }> = [
+  { code: "AL", name: "Alabama" },
+  { code: "AK", name: "Alaska" },
+  { code: "AZ", name: "Arizona" },
+  { code: "AR", name: "Arkansas" },
+  { code: "CA", name: "California" },
+  { code: "CO", name: "Colorado" },
+  { code: "CT", name: "Connecticut" },
+  { code: "DE", name: "Delaware" },
+  { code: "FL", name: "Florida" },
+  { code: "GA", name: "Georgia" },
+  { code: "HI", name: "Hawaii" },
+  { code: "ID", name: "Idaho" },
+  { code: "IL", name: "Illinois" },
+  { code: "IN", name: "Indiana" },
+  { code: "IA", name: "Iowa" },
+  { code: "KS", name: "Kansas" },
+  { code: "KY", name: "Kentucky" },
+  { code: "LA", name: "Louisiana" },
+  { code: "ME", name: "Maine" },
+  { code: "MD", name: "Maryland" },
+  { code: "MA", name: "Massachusetts" },
+  { code: "MI", name: "Michigan" },
+  { code: "MN", name: "Minnesota" },
+  { code: "MS", name: "Mississippi" },
+  { code: "MO", name: "Missouri" },
+  { code: "MT", name: "Montana" },
+  { code: "NE", name: "Nebraska" },
+  { code: "NV", name: "Nevada" },
+  { code: "NH", name: "New Hampshire" },
+  { code: "NJ", name: "New Jersey" },
+  { code: "NM", name: "New Mexico" },
+  { code: "NY", name: "New York" },
+  { code: "NC", name: "North Carolina" },
+  { code: "ND", name: "North Dakota" },
+  { code: "OH", name: "Ohio" },
+  { code: "OK", name: "Oklahoma" },
+  { code: "OR", name: "Oregon" },
+  { code: "PA", name: "Pennsylvania" },
+  { code: "RI", name: "Rhode Island" },
+  { code: "SC", name: "South Carolina" },
+  { code: "SD", name: "South Dakota" },
+  { code: "TN", name: "Tennessee" },
+  { code: "TX", name: "Texas" },
+  { code: "UT", name: "Utah" },
+  { code: "VT", name: "Vermont" },
+  { code: "VA", name: "Virginia" },
+  { code: "WA", name: "Washington" },
+  { code: "WV", name: "West Virginia" },
+  { code: "WI", name: "Wisconsin" },
+  { code: "WY", name: "Wyoming" }
+];
 
 const socialChargeColumns = [
   { key: "csg", label: "CSG", rate: 0.106 },
@@ -164,6 +268,7 @@ function App() {
   const [step, setStep] = React.useState<AppStep>("modules");
   const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>("france");
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>("married_filing_jointly");
+  const [usState, setUsState] = React.useState<UsStateCode>("TX");
   const [isTaxResident, setIsTaxResident] = React.useState(true);
   const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(2);
   const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>("visitor_retiree");
@@ -204,6 +309,7 @@ function App() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           filing_status: filingStatus,
+          us_state: usState,
           destination_country: selectedCountry,
           destination_tax_resident: isTaxResident,
           france_household_parts: franceHouseholdParts,
@@ -280,6 +386,7 @@ function App() {
         {step === "inputs" ? (
           <InputsPage
             filingStatus={filingStatus}
+            usState={usState}
             isTaxResident={isTaxResident}
             franceHouseholdParts={franceHouseholdParts}
             franceVisaStatus={franceVisaStatus}
@@ -291,6 +398,7 @@ function App() {
             isCalculating={isCalculating}
             onBack={() => navigateToStep("analyzer")}
             onFilingStatusChange={setFilingStatus}
+            onUsStateChange={setUsState}
             onTaxResidentChange={setIsTaxResident}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
             onFranceVisaStatusChange={setFranceVisaStatus}
@@ -467,6 +575,7 @@ function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
 
 function InputsPage({
   filingStatus,
+  usState,
   isTaxResident,
   franceHouseholdParts,
   franceVisaStatus,
@@ -478,6 +587,7 @@ function InputsPage({
   isCalculating,
   onBack,
   onFilingStatusChange,
+  onUsStateChange,
   onTaxResidentChange,
   onFranceHouseholdPartsChange,
   onFranceVisaStatusChange,
@@ -489,6 +599,7 @@ function InputsPage({
   onSubmit
 }: {
   filingStatus: FilingStatus;
+  usState: UsStateCode;
   isTaxResident: boolean;
   franceHouseholdParts: number;
   franceVisaStatus: FranceVisaStatus;
@@ -500,6 +611,7 @@ function InputsPage({
   isCalculating: boolean;
   onBack: () => void;
   onFilingStatusChange: (status: FilingStatus) => void;
+  onUsStateChange: (state: UsStateCode) => void;
   onTaxResidentChange: (value: boolean) => void;
   onFranceHouseholdPartsChange: (value: number) => void;
   onFranceVisaStatusChange: (status: FranceVisaStatus) => void;
@@ -538,8 +650,12 @@ function InputsPage({
             </label>
             <label>
               US state
-              <select value="texas" disabled>
-                <option value="texas">Texas</option>
+              <select value={usState} onChange={(event) => onUsStateChange(event.target.value as UsStateCode)}>
+                {usStates.map((state) => (
+                  <option key={state.code} value={state.code}>
+                    {state.name}
+                  </option>
+                ))}
               </select>
             </label>
             <label>

@@ -9,6 +9,58 @@ FilingStatus = Literal[
     "married_filing_separately",
     "head_of_household",
 ]
+UsStateCode = Literal[
+    "AL",
+    "AK",
+    "AZ",
+    "AR",
+    "CA",
+    "CO",
+    "CT",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "ID",
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "KY",
+    "LA",
+    "ME",
+    "MD",
+    "MA",
+    "MI",
+    "MN",
+    "MS",
+    "MO",
+    "MT",
+    "NE",
+    "NV",
+    "NH",
+    "NJ",
+    "NM",
+    "NY",
+    "NC",
+    "ND",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VT",
+    "VA",
+    "WA",
+    "WV",
+    "WI",
+    "WY",
+]
 FtcBasket = Literal[
     "passive",
     "general",
@@ -64,6 +116,7 @@ class DeductionLine(BaseModel):
 
 class ScenarioInputs(BaseModel):
     filing_status: FilingStatus
+    us_state: UsStateCode = "TX"
     destination_country: DestinationCountry
     destination_tax_resident: bool
     france_household_parts: float = Field(default=1, ge=1, le=20)
