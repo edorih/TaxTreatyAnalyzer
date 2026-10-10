@@ -59,6 +59,13 @@ type UsStateCode =
   | "WY";
 type FranceVisaStatus = "visitor_retiree" | "employee" | "self_employed" | "talent_professional" | "student" | "other_unsure";
 type FranceHealthAffiliation = "unknown" | "french_system" | "us_totalization_or_private" | "not_affiliated";
+type FranceTaxResidencyStatus =
+  | "resident_home_or_main_stay"
+  | "resident_principal_work"
+  | "resident_economic_interests"
+  | "resident_treaty_tiebreaker"
+  | "not_resident"
+  | "unsure_review";
 type AppStep = "modules" | "analyzer" | "optimizer" | "inputs" | "results";
 
 type IncomeLine = {
@@ -313,7 +320,7 @@ function readStoredAppState(): {
   selectedCountry?: DestinationCountry;
   filingStatus?: FilingStatus;
   usState?: UsStateCode;
-  isTaxResident?: boolean;
+  franceTaxResidencyStatus?: FranceTaxResidencyStatus;
   franceHouseholdParts?: number;
   usdPerEur?: number;
   franceVisaStatus?: FranceVisaStatus;
@@ -338,7 +345,9 @@ function App() {
   const [selectedCountry, setSelectedCountry] = React.useState<DestinationCountry>(storedAppState.selectedCountry ?? "france");
   const [filingStatus, setFilingStatus] = React.useState<FilingStatus>(storedAppState.filingStatus ?? "married_filing_jointly");
   const [usState, setUsState] = React.useState<UsStateCode>(storedAppState.usState ?? "TX");
-  const [isTaxResident, setIsTaxResident] = React.useState(storedAppState.isTaxResident ?? true);
+  const [franceTaxResidencyStatus, setFranceTaxResidencyStatus] = React.useState<FranceTaxResidencyStatus>(
+    storedAppState.franceTaxResidencyStatus ?? "resident_home_or_main_stay"
+  );
   const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(storedAppState.franceHouseholdParts ?? 2);
   const [usdPerEur, setUsdPerEur] = React.useState(storedAppState.usdPerEur ?? 1.15);
   const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>(storedAppState.franceVisaStatus ?? "visitor_retiree");
@@ -352,6 +361,7 @@ function App() {
 
   const annualIncome = lines.reduce((sum, line) => sum + line.monthlyAmountUsd * 12, 0);
   const advisorFlagCount = result?.country_tax.advisor_flags?.length ?? 0;
+  const isTaxResident = franceTaxResidencyStatus.startsWith("resident_");
 
   React.useEffect(() => {
     window.history.replaceState({ appStep: step }, "", pathForStep(step));
@@ -372,7 +382,7 @@ function App() {
         selectedCountry,
         filingStatus,
         usState,
-        isTaxResident,
+        franceTaxResidencyStatus,
         franceHouseholdParts,
         usdPerEur,
         franceVisaStatus,
@@ -386,7 +396,7 @@ function App() {
     selectedCountry,
     filingStatus,
     usState,
-    isTaxResident,
+    franceTaxResidencyStatus,
     franceHouseholdParts,
     usdPerEur,
     franceVisaStatus,
@@ -489,7 +499,7 @@ function App() {
           <InputsPage
             filingStatus={filingStatus}
             usState={usState}
-            isTaxResident={isTaxResident}
+            franceTaxResidencyStatus={franceTaxResidencyStatus}
             franceHouseholdParts={franceHouseholdParts}
             usdPerEur={usdPerEur}
             franceVisaStatus={franceVisaStatus}
@@ -502,7 +512,7 @@ function App() {
             onBack={() => navigateToStep("analyzer")}
             onFilingStatusChange={setFilingStatus}
             onUsStateChange={setUsState}
-            onTaxResidentChange={setIsTaxResident}
+            onFranceTaxResidencyStatusChange={setFranceTaxResidencyStatus}
             onFranceHouseholdPartsChange={setFranceHouseholdParts}
             onUsdPerEurChange={setUsdPerEur}
             onFranceVisaStatusChange={setFranceVisaStatus}
@@ -680,7 +690,7 @@ function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
 function InputsPage({
   filingStatus,
   usState,
-  isTaxResident,
+  franceTaxResidencyStatus,
   franceHouseholdParts,
   usdPerEur,
   franceVisaStatus,
@@ -693,7 +703,7 @@ function InputsPage({
   onBack,
   onFilingStatusChange,
   onUsStateChange,
-  onTaxResidentChange,
+  onFranceTaxResidencyStatusChange,
   onFranceHouseholdPartsChange,
   onUsdPerEurChange,
   onFranceVisaStatusChange,
@@ -706,7 +716,7 @@ function InputsPage({
 }: {
   filingStatus: FilingStatus;
   usState: UsStateCode;
-  isTaxResident: boolean;
+  franceTaxResidencyStatus: FranceTaxResidencyStatus;
   franceHouseholdParts: number;
   usdPerEur: number;
   franceVisaStatus: FranceVisaStatus;
@@ -719,7 +729,7 @@ function InputsPage({
   onBack: () => void;
   onFilingStatusChange: (status: FilingStatus) => void;
   onUsStateChange: (state: UsStateCode) => void;
-  onTaxResidentChange: (value: boolean) => void;
+  onFranceTaxResidencyStatusChange: (status: FranceTaxResidencyStatus) => void;
   onFranceHouseholdPartsChange: (value: number) => void;
   onUsdPerEurChange: (value: number) => void;
   onFranceVisaStatusChange: (status: FranceVisaStatus) => void;
@@ -767,10 +777,17 @@ function InputsPage({
               </select>
             </label>
             <label>
-              France tax residency
-              <select value={isTaxResident ? "yes" : "review"} onChange={(event) => onTaxResidentChange(event.target.value === "yes")}>
-                <option value="yes">Assume France tax resident</option>
-                <option value="review">Need advisor review</option>
+              French tax residency**
+              <select
+                value={franceTaxResidencyStatus}
+                onChange={(event) => onFranceTaxResidencyStatusChange(event.target.value as FranceTaxResidencyStatus)}
+              >
+                <option value="resident_home_or_main_stay">French resident - home or main stay in France</option>
+                <option value="resident_principal_work">French resident - principal work in France</option>
+                <option value="resident_economic_interests">French resident - economic interests in France</option>
+                <option value="resident_treaty_tiebreaker">French resident - treaty tie-breaker</option>
+                <option value="not_resident">Not French tax resident</option>
+                <option value="unsure_review">Unsure / professional review needed</option>
               </select>
             </label>
             <label>
@@ -931,6 +948,13 @@ function InputsPage({
           Notes: * See{" "}
           <a href="https://www.service-public.fr/particuliers/vosdroits/F2705" target="_blank" rel="noreferrer">
             Service-Public guidance on calculating French household parts
+          </a>
+          .
+        </p>
+        <p>
+          ** See{" "}
+          <a href="https://www.impots.gouv.fr/resident-de-france" target="_blank" rel="noreferrer">
+            impots.gouv.fr guidance on French tax residence criteria
           </a>
           .
         </p>
