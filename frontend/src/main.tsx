@@ -854,6 +854,9 @@ function ResultsPage({
         <div>
           <p className="eyebrow">France estimate</p>
           <h1 id="app-title">Tax estimate output</h1>
+          <p className="output-scope-note">
+            US federal tax, Form 1116 foreign tax credits, and US state income tax are not estimated in this version.
+          </p>
         </div>
         <div className="toolbar-actions">
           <button className="ghost-button" type="button" onClick={onBack}>
@@ -870,18 +873,14 @@ function ResultsPage({
         <div>
           <p className="eyebrow">Estimate summary</p>
           <h2 id="results-heading">France tax estimate</h2>
-          <p className="result-context">
-            Progressive France tax uses {result.country_tax.france_household_parts ?? 1} household part
-            {(result.country_tax.france_household_parts ?? 1) === 1 ? "" : "s"}.
-          </p>
         </div>
         <div className="income-results-table" role="table" aria-label="France tax estimate by income type">
           <div className="income-result-row summary-head" role="row">
             <span role="columnheader">Income type</span>
-            <span role="columnheader">Annual income</span>
-            <span role="columnheader">France taxable</span>
-            <span role="columnheader">Income tax</span>
-            <span role="columnheader">Social charges</span>
+            <span role="columnheader">Annual worldwide income</span>
+            <span role="columnheader">France Taxable Income</span>
+            <span role="columnheader">France Income Tax</span>
+            <span role="columnheader">France Social charges</span>
             <span role="columnheader">Notes</span>
           </div>
           {incomeRows.map((row) => (
@@ -954,7 +953,7 @@ function ResultsPage({
 
         <div className="detail-grid">
           <details className="detail-panel collapsible-panel">
-            <summary id="advisor-flags-heading">Advisor review recommended - click for details</summary>
+            <summary id="advisor-flags-heading">Tax professional review recommended - click for details</summary>
             <div className="flag-list">
               {sortedAdvisorFlags.map((flag, index) => (
                 <div className="flag-item" key={`${flag.code}-${flag.income_line_id ?? "scenario"}`}>
