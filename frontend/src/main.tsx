@@ -997,7 +997,7 @@ function ResultsPage({
         <div className="income-results-table" role="table" aria-label="France tax estimate by income type">
           <div className="income-result-row summary-head" role="row">
             <span role="columnheader">Income type</span>
-            <span role="columnheader">Annual worldwide income</span>
+            <span role="columnheader">Annual Income</span>
             <span role="columnheader">France Taxable Income</span>
             <span role="columnheader">France Income Tax</span>
             <span role="columnheader">France Social charges</span>
