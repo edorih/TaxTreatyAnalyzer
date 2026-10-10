@@ -319,8 +319,14 @@ h2 {
 }
 
 .optimizer-note {
-  color: var(--muted);
-  font-size: 0.82rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--accent-soft);
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 .field-grid {

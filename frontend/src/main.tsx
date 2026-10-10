@@ -330,7 +330,7 @@ function ModuleLandingPage({
       </h1>
       <button className="module-tile" type="button" onClick={onSelectAnalyzer}>
         <Calculator size={20} aria-hidden="true" />
-        <span>Tax Analyzer</span>
+        <span>Tax Estimator</span>
       </button>
       <button className="module-tile" type="button" onClick={onSelectOptimizer}>
         <ShieldCheck size={20} aria-hidden="true" />
@@ -355,8 +355,8 @@ function AnalyzerLandingPage({
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow">Tax Analyzer</p>
-          <h1 id="app-title">Analyze your taxes by country</h1>
+          <p className="eyebrow">Tax Estimator</p>
+          <h1 id="app-title">Estimate your taxes by country</h1>
         </div>
         <button className="ghost-button" type="button" onClick={onBack}>
           <ArrowLeft size={16} aria-hidden="true" />
@@ -367,7 +367,7 @@ function AnalyzerLandingPage({
       <div className="landing-layout">
         <section className="landing-copy" aria-labelledby="app-title">
           <p className="lede">
-            Tax Treaty Analyzer is for US citizens exploring retirement or long-term relocation abroad. It estimates
+            Tax Treaty Estimator is for US citizens exploring retirement or long-term relocation abroad. It estimates
             destination-country tax exposure, separates local social charges, and highlights treaty areas that deserve
             advisor review.
           </p>
@@ -441,6 +441,10 @@ function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
           exposure. It will focus on timing, income mix, treaty positions, foreign tax credits, social-charge exposure,
           retirement distributions, investment income, and household-structure assumptions.
         </p>
+        <div className="optimizer-note" role="status">
+          This module is not live yet. Recommendations will be separated into routine planning ideas and higher-risk
+          items that require qualified French/US advisor review.
+        </div>
         <label className="optimizer-selector">
           Treaty pair
           <select value={selectedPair} onChange={(event) => setSelectedPair(event.target.value)}>
@@ -456,10 +460,6 @@ function OptimizerLandingPage({ onBack }: { onBack: () => void }) {
             <span>Next step: define the optimization scope and country-specific strategy categories.</span>
           </div>
         ) : null}
-        <p className="optimizer-note">
-          This module is not live yet. Recommendations will be separated into routine planning ideas and higher-risk
-          items that require qualified French/US advisor review.
-        </p>
       </section>
     </>
   );
