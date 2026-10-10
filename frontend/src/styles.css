@@ -690,8 +690,16 @@ select:disabled {
 
 .flag-item strong {
   display: block;
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.flag-severity {
+  display: block;
+  margin: 2px 0;
   color: var(--warning);
   font-size: 0.68rem;
+  font-weight: 800;
 }
 
 .flag-number {

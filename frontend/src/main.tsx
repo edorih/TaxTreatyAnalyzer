@@ -260,6 +260,18 @@ function advisorSeverityRank(severity: string): number {
   return 0;
 }
 
+function getReviewSubject(
+  flag: { income_line_id?: string | null },
+  incomeRows: IncomeTaxRow[]
+): string {
+  if (!flag.income_line_id) {
+    return "Scenario review";
+  }
+
+  const incomeRow = incomeRows.find((row) => row.income_line_id === flag.income_line_id);
+  return incomeRow ? `Income line: ${incomeRow.income_type}` : "Income line review";
+}
+
 function isAppStep(value: unknown): value is AppStep {
   return value === "modules" || value === "analyzer" || value === "optimizer" || value === "inputs" || value === "results";
 }
@@ -953,13 +965,14 @@ function ResultsPage({
 
         <div className="detail-grid">
           <details className="detail-panel collapsible-panel">
-            <summary id="advisor-flags-heading">Tax professional review recommended - click for details</summary>
+            <summary id="advisor-flags-heading">Tax professional review recommended</summary>
             <div className="flag-list">
               {sortedAdvisorFlags.map((flag, index) => (
                 <div className="flag-item" key={`${flag.code}-${flag.income_line_id ?? "scenario"}`}>
                   <span className="flag-number">{index + 1}</span>
                   <div>
-                    <strong>{flag.severity.toUpperCase()}</strong>
+                    <strong>{getReviewSubject(flag, incomeRows)}</strong>
+                    <span className="flag-severity">{flag.severity.toUpperCase()}</span>
                     <span>{flag.message}</span>
                   </div>
                 </div>
