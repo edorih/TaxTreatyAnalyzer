@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 DestinationCountry = Literal["france", "italy", "portugal"]
 FilingStatus = Literal[
@@ -127,6 +127,14 @@ class ScenarioInputs(BaseModel):
     deduction_mode: Literal["standard", "itemized"]
     income_lines: list[IncomeLine]
     deduction_lines: list[DeductionLine] = []
+
+    @field_validator("france_household_parts")
+    @classmethod
+    def validate_france_household_parts(cls, value: float) -> float:
+        quarter_units = value * 4
+        if abs(quarter_units - round(quarter_units)) > 1e-9:
+            raise ValueError("france_household_parts must be in 0.25 increments")
+        return value
 
 
 class ScenarioCreate(BaseModel):

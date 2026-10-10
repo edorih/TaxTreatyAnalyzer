@@ -334,6 +334,11 @@ function normalizeFranceTaxResidencyStatus(value: unknown): FranceTaxResidencySt
   return value === "not_resident" ? "not_resident" : "resident";
 }
 
+function normalizeFranceHouseholdParts(value: number): number {
+  const boundedValue = Math.min(20, Math.max(1, value || 1));
+  return Math.round(boundedValue * 4) / 4;
+}
+
 function App() {
   const storedAppState = React.useMemo(() => readStoredAppState(), []);
   const [step, setStep] = React.useState<AppStep>(() => {
@@ -346,7 +351,9 @@ function App() {
   const [franceTaxResidencyStatus, setFranceTaxResidencyStatus] = React.useState<FranceTaxResidencyStatus>(
     normalizeFranceTaxResidencyStatus(storedAppState.franceTaxResidencyStatus)
   );
-  const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(storedAppState.franceHouseholdParts ?? 2);
+  const [franceHouseholdParts, setFranceHouseholdParts] = React.useState(
+    normalizeFranceHouseholdParts(storedAppState.franceHouseholdParts ?? 2)
+  );
   const [usdPerEur, setUsdPerEur] = React.useState(storedAppState.usdPerEur ?? 1.15);
   const [franceVisaStatus, setFranceVisaStatus] = React.useState<FranceVisaStatus>(storedAppState.franceVisaStatus ?? "visitor_retiree");
   const [willWorkInFrance, setWillWorkInFrance] = React.useState(storedAppState.willWorkInFrance ?? false);
@@ -421,7 +428,7 @@ function App() {
           us_state: usState,
           destination_country: selectedCountry,
           destination_tax_resident: isTaxResident,
-          france_household_parts: franceHouseholdParts,
+          france_household_parts: normalizeFranceHouseholdParts(franceHouseholdParts),
           usd_per_eur: usdPerEur,
           france_visa_status: franceVisaStatus,
           will_work_in_france: willWorkInFrance,
@@ -791,10 +798,11 @@ function InputsPage({
                 type="number"
                 min="1"
                 max="20"
-                step="0.5"
+                step="0.25"
                 inputMode="decimal"
                 value={franceHouseholdParts}
                 onChange={(event) => onFranceHouseholdPartsChange(Math.max(1, Number(event.target.value) || 1))}
+                onBlur={() => onFranceHouseholdPartsChange(normalizeFranceHouseholdParts(franceHouseholdParts))}
               />
             </label>
             <label>
@@ -938,8 +946,9 @@ function InputsPage({
         </button>
       </section>
       <aside className="input-notes" aria-label="Input notes">
+        <p className="input-notes-label">Notes:</p>
         <p>
-          Notes: * See{" "}
+          * See{" "}
           <a href="https://www.impots.gouv.fr/resident-de-france" target="_blank" rel="noreferrer">
             impots.gouv.fr guidance on French tax residence criteria
           </a>

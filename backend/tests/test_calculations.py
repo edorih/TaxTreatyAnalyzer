@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from app.calculations.countries.france import calculate_france_tax, calculate_progressive_tax
 from app.calculations.engine import calculate_scenario
 from app.schemas import IncomeLine, ScenarioInputs
@@ -159,6 +162,47 @@ def test_france_module_applies_user_supplied_household_parts():
 
     assert result["france_household_parts"] == 2
     assert result["estimated_income_tax_usd"] == 3691.26
+
+
+def test_scenario_inputs_accept_quarter_household_parts():
+    inputs = ScenarioInputs(
+        filing_status="married_filing_jointly",
+        destination_country="france",
+        destination_tax_resident=True,
+        france_household_parts=2.25,
+        deduction_mode="standard",
+        income_lines=[
+            IncomeLine(
+                id="salary",
+                income_type="US employer salary",
+                monthly_amount_usd=5000,
+                source_country="United States",
+                ftc_basket="general",
+            )
+        ],
+    )
+
+    assert inputs.france_household_parts == 2.25
+
+
+def test_scenario_inputs_reject_arbitrary_decimal_household_parts():
+    with pytest.raises(ValidationError, match="0.25 increments"):
+        ScenarioInputs(
+            filing_status="married_filing_jointly",
+            destination_country="france",
+            destination_tax_resident=True,
+            france_household_parts=2.3,
+            deduction_mode="standard",
+            income_lines=[
+                IncomeLine(
+                    id="salary",
+                    income_type="US employer salary",
+                    monthly_amount_usd=5000,
+                    source_country="United States",
+                    ftc_basket="general",
+                )
+            ],
+        )
 
 
 def test_france_module_uses_user_supplied_exchange_rate_for_progressive_tax():
