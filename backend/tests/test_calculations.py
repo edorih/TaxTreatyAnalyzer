@@ -137,7 +137,79 @@ def test_france_module_separates_income_tax_and_social_charges():
         treatment for treatment in result["income_treatments"] if treatment["income_line_id"] == "ssa"
     )
     assert social_security["france_taxable_amount_usd"] == 0
-    assert social_security["treaty_position"] == "us_social_security_paying_state_only"
+    assert social_security["treaty_position"] == "us_social_security_article_18_article_24_credit"
+    assert social_security["article_24_credit_eligible"] is True
+
+
+def test_france_article_24_credit_eliminates_tax_on_qualified_us_401k_only_income():
+    inputs = ScenarioInputs(
+        filing_status="single",
+        destination_country="france",
+        destination_tax_resident=True,
+        france_household_parts=1,
+        usd_per_eur=1,
+        deduction_mode="standard",
+        income_lines=[
+            IncomeLine(
+                id="401k",
+                income_type="401(k)",
+                monthly_amount_usd=5000,
+                source_country="United States",
+                ftc_basket="general",
+            )
+        ],
+    )
+
+    result = calculate_france_tax(inputs).to_dict()
+    row = result["income_tax_rows"][0]
+    credit = next(component for component in result["components"] if component["code"] == "fr_article_24_credit")
+
+    assert result["total_taxable_income_usd"] == 0
+    assert result["estimated_income_tax_usd"] == 0
+    assert row["france_taxable_amount_usd"] == 0
+    assert row["france_income_tax_usd"] == 0
+    assert row["article_24_credit_eligible"] is True
+    assert credit["amount_usd"] == -round(calculate_progressive_tax(60_000), 2)
+
+
+def test_france_article_24_income_increases_rate_on_other_france_taxable_income():
+    inputs = ScenarioInputs(
+        filing_status="single",
+        destination_country="france",
+        destination_tax_resident=True,
+        france_household_parts=1,
+        usd_per_eur=1,
+        deduction_mode="standard",
+        income_lines=[
+            IncomeLine(
+                id="salary",
+                income_type="Local employer salary",
+                monthly_amount_usd=2000,
+                source_country="France",
+                ftc_basket="general",
+            ),
+            IncomeLine(
+                id="401k",
+                income_type="401(k)",
+                monthly_amount_usd=3000,
+                source_country="United States",
+                ftc_basket="general",
+            ),
+        ],
+    )
+
+    result = calculate_france_tax(inputs).to_dict()
+    salary_row = next(row for row in result["income_tax_rows"] if row["income_line_id"] == "salary")
+    retirement_row = next(row for row in result["income_tax_rows"] if row["income_line_id"] == "401k")
+    gross_tax = calculate_progressive_tax(60_000)
+    expected_net_tax = round(gross_tax * (24_000 / 60_000), 2)
+
+    assert result["total_taxable_income_usd"] == 24_000
+    assert result["estimated_income_tax_usd"] == expected_net_tax
+    assert salary_row["france_income_tax_usd"] == expected_net_tax
+    assert retirement_row["france_taxable_amount_usd"] == 0
+    assert retirement_row["france_income_tax_usd"] == 0
+    assert retirement_row["article_24_credit_eligible"] is True
 
 
 def test_france_module_applies_user_supplied_household_parts():

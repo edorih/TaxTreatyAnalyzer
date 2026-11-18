@@ -584,6 +584,20 @@ select:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.income-result-row sup {
+  margin-left: 1px;
+  color: var(--accent);
+  font-size: 0.72em;
+  font-weight: 800;
+}
+
+.article-24-footnote {
+  margin: -2px 2px 2px;
+  color: var(--muted-strong);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
 .summary-row strong,
 .result-row strong,
 .income-result-row strong,

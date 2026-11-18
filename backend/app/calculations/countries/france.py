@@ -47,9 +47,9 @@ FRANCE_SOURCES = [
         notes="IRS index for the US-France income tax treaty, protocols, and technical explanations.",
     ),
     SourceReference(
-        label="US Treasury technical explanation - US-France treaty Article 18",
-        url="https://www.irs.gov/pub/irs-trty/francetech.pdf",
-        notes="Technical explanation describes private pension residence-state taxation and paying-state social security treatment.",
+        label="impots.gouv.fr - consolidated US-France income tax treaty",
+        url="https://www.impots.gouv.fr/sites/default/files/media/10_conventions/etats-unis/etats-unis_convention-avec-les-etats-unis-impot-sur-le-revenu-impot-sur-la-fortune_fd_1835.pdf",
+        notes="Articles 18 and 24 address US pension and Social Security taxation and the corresponding French tax credit.",
     ),
 ]
 
@@ -73,14 +73,22 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
         treatments.append(treatment)
         flags.extend(line_flags)
 
-    progressive_base = sum(
+    progressive_taxable_base = sum(
         treatment.france_taxable_amount_usd
         for treatment in treatments
         if treatment.treaty_position in {"france_residence_taxable_progressive", "france_taxable_uncertain_progressive"}
     )
-    progressive_base_eur = progressive_base / usd_per_eur
-    progressive_tax_eur = calculate_progressive_tax(progressive_base_eur, household_parts)
-    progressive_tax = progressive_tax_eur * usd_per_eur
+    article_24_rate_base = sum(treatment.article_24_rate_base_amount_usd for treatment in treatments)
+    progressive_rate_base = progressive_taxable_base + article_24_rate_base
+    progressive_rate_base_eur = progressive_rate_base / usd_per_eur
+    gross_progressive_tax_eur = calculate_progressive_tax(progressive_rate_base_eur, household_parts)
+    gross_progressive_tax = gross_progressive_tax_eur * usd_per_eur
+    article_24_credit = allocate_progressive_tax(
+        article_24_rate_base,
+        progressive_rate_base,
+        gross_progressive_tax,
+    )
+    net_progressive_tax = max(0.0, gross_progressive_tax - article_24_credit)
     flat_income_tax = sum(
         treatment.france_income_tax_usd
         for treatment in treatments
@@ -93,20 +101,30 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
     )
     social_charge_breakdown = calculate_social_charge_breakdown(social_charge_base)
     social_charges = sum(component.amount_usd for component in social_charge_breakdown)
-    total_income_tax = progressive_tax + flat_income_tax
+    total_income_tax = net_progressive_tax + flat_income_tax
     taxable_income = sum(treatment.france_taxable_amount_usd for treatment in treatments)
-    income_tax_rows = build_income_tax_rows(treatments, progressive_base, progressive_tax)
+    income_tax_rows = build_income_tax_rows(treatments, progressive_taxable_base, net_progressive_tax)
 
     components = [
         TaxComponent(
             code="fr_income_tax_progressive",
-            label="France progressive income tax",
-            amount_usd=round(progressive_tax, 2),
+            label="France progressive income tax before Article 24 credit",
+            amount_usd=round(gross_progressive_tax, 2),
             confidence="medium",
             notes=[
-                "Applied to employment, pension-like, and other progressively taxed income classified as France-taxable.",
+                "Calculated on France-taxable income plus qualifying Article 24 rate-only income.",
                 f"Converts USD inputs to EUR using {usd_per_eur:g} USD per EUR for bracket calculation.",
                 f"Uses {household_parts:g} French tax household part(s) for quotient familial.",
+            ],
+        ),
+        TaxComponent(
+            code="fr_article_24_credit",
+            label="US-France treaty Article 24 credit",
+            amount_usd=round(-article_24_credit, 2),
+            confidence="medium",
+            notes=[
+                "Offsets the French tax attributable to qualifying US retirement and Social Security income.",
+                "Qualifying income remains in the rate calculation and can increase tax on other France-taxable income.",
             ],
         ),
         TaxComponent(
@@ -146,6 +164,7 @@ def calculate_france_tax(inputs: ScenarioInputs) -> CountryTaxResult:
             f"France visa/stay status supplied by user: {inputs.france_visa_status.replace('_', ' ')}.",
             f"Work performed while in France supplied by user: {'yes' if inputs.will_work_in_france else 'no'}.",
             f"French health/social affiliation supplied by user: {inputs.france_health_affiliation.replace('_', ' ')}.",
+            "Qualifying US retirement and Social Security income is included for the effective-rate calculation and receives an Article 24 credit equal to its corresponding French tax.",
             "The first France module estimates broad treatment only; it is not a filing calculator.",
         ],
         confidence="draft_country_module",
@@ -236,6 +255,29 @@ def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[I
         ), flags
 
     if normalized_type in {"401k", "traditional_ira", "pension", "annuity"}:
+        if is_united_states_source(line.source_country):
+            flags.append(
+                AdvisorFlag(
+                    code="france_pension_article_24_qualification_review",
+                    severity="medium",
+                    message="US retirement income is modeled under treaty Articles 18 and 24; confirm that the plan and distribution qualify.",
+                    income_line_id=line.id,
+                )
+            )
+            return income_treatment(
+                line,
+                annual_amount,
+                0,
+                0,
+                0,
+                "us_retirement_article_18_article_24_credit",
+                "general",
+                "medium",
+                ["Article 24 credit modeled; included only in the French effective-rate calculation."],
+                article_24_credit_eligible=True,
+                article_24_rate_base_amount=annual_amount,
+            ), flags
+
         flags.append(
             AdvisorFlag(
                 code="france_pension_account_review",
@@ -276,17 +318,19 @@ def classify_income_line(line: IncomeLine, france_tax_resident: bool) -> tuple[I
             ["Included in progressive base as conservative placeholder."],
         ), flags
 
-    if normalized_type == "social_security":
+    if normalized_type == "social_security" and is_united_states_source(line.source_country):
         return income_treatment(
             line,
             annual_amount,
             0,
             0,
             0,
-            "us_social_security_paying_state_only",
+            "us_social_security_article_18_article_24_credit",
             "general",
             "medium",
-            ["US Social Security is treated as not France-taxable in v1 based on treaty technical explanation."],
+            ["Article 24 credit modeled; included only in the French effective-rate calculation."],
+            article_24_credit_eligible=True,
+            article_24_rate_base_amount=annual_amount,
         ), flags
 
     if normalized_type in {"brokerage_dividends", "interest", "long_term_capital_gains", "short_term_capital_gains", "crypto_gains"}:
@@ -404,6 +448,7 @@ def build_income_tax_rows(
                 france_taxable_amount_usd=treatment.france_taxable_amount_usd,
                 france_income_tax_usd=round(income_tax, 2),
                 france_social_charges_usd=treatment.france_social_charges_usd,
+                article_24_credit_eligible=treatment.article_24_credit_eligible,
                 notes=notes,
             )
         )
@@ -426,6 +471,8 @@ def income_treatment(
     ftc_basket: str,
     confidence: str,
     notes: list[str] | None = None,
+    article_24_credit_eligible: bool = False,
+    article_24_rate_base_amount: float = 0.0,
 ) -> IncomeTreatment:
     return IncomeTreatment(
         income_line_id=line.id,
@@ -437,8 +484,17 @@ def income_treatment(
         treaty_position=treaty_position,
         ftc_basket=ftc_basket,
         confidence=confidence,
+        article_24_credit_eligible=article_24_credit_eligible,
+        article_24_rate_base_amount_usd=round(article_24_rate_base_amount, 2),
         notes=notes or [],
     )
+
+
+def is_united_states_source(source_country: str) -> bool:
+    normalized_source = source_country.lower()
+    for character in (" ", ".", "-", "_"):
+        normalized_source = normalized_source.replace(character, "")
+    return normalized_source in {"us", "usa", "unitedstates", "unitedstatesofamerica"}
 
 
 def normalize_income_type(income_type: str) -> str:

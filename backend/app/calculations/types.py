@@ -57,6 +57,8 @@ class IncomeTreatment:
     treaty_position: str
     ftc_basket: str
     confidence: str
+    article_24_credit_eligible: bool = False
+    article_24_rate_base_amount_usd: float = 0.0
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -71,6 +73,7 @@ class IncomeTaxRow:
     france_taxable_amount_usd: float
     france_income_tax_usd: float
     france_social_charges_usd: float
+    article_24_credit_eligible: bool = False
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:

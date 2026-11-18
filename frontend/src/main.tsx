@@ -77,6 +77,7 @@ type IncomeTaxRow = {
   france_taxable_amount_usd: number;
   france_income_tax_usd: number;
   france_social_charges_usd: number;
+  article_24_credit_eligible?: boolean;
   notes: string[];
 };
 
@@ -231,6 +232,7 @@ function getIncomeRows(countryTax: CountryTaxResult): IncomeTaxRow[] {
     france_taxable_amount_usd: treatment.france_taxable_amount_usd,
     france_income_tax_usd: treatment.france_income_tax_usd,
     france_social_charges_usd: treatment.france_social_charges_usd,
+    article_24_credit_eligible: treatment.article_24_credit_eligible,
     notes: treatment.notes ?? []
   }));
 }
@@ -994,6 +996,7 @@ function ResultsPage({
     }),
     { annualIncome: 0, taxableIncome: 0, incomeTax: 0, socialCharges: 0 }
   );
+  const hasArticle24Rows = incomeRows.some((row) => row.article_24_credit_eligible);
   const sortedAdvisorFlags = [...(result.country_tax.advisor_flags ?? [])].sort(
     (a, b) => advisorSeverityRank(b.severity) - advisorSeverityRank(a.severity)
   );
@@ -1024,7 +1027,12 @@ function ResultsPage({
           <p className="eyebrow">Estimate summary</p>
           <h2 id="results-heading">France tax estimate</h2>
         </div>
-        <div className="income-results-table" role="table" aria-label="France tax estimate by income type">
+        <div
+          className="income-results-table"
+          role="table"
+          aria-label="France tax estimate by income type"
+          aria-describedby={hasArticle24Rows ? "article-24-footnote" : undefined}
+        >
           <div className="income-result-row summary-head" role="row">
             <span role="columnheader">Income type</span>
             <span role="columnheader">Annual Income</span>
@@ -1035,7 +1043,14 @@ function ResultsPage({
           </div>
           {incomeRows.map((row) => (
             <div className="income-result-row" role="row" key={row.income_line_id}>
-              <span>{row.income_type}</span>
+              <span
+                aria-label={
+                  row.article_24_credit_eligible ? `${row.income_type}; Article 24 treaty credit applies` : undefined
+                }
+              >
+                {row.income_type}
+                {row.article_24_credit_eligible ? <sup aria-hidden="true">*</sup> : null}
+              </span>
               <strong>{formatUsd(row.annual_amount_usd)}</strong>
               <strong>{formatUsd(row.france_taxable_amount_usd)}</strong>
               <strong>{formatUsd(row.france_income_tax_usd)}</strong>
@@ -1063,6 +1078,14 @@ function ResultsPage({
             </span>
           </div>
         </div>
+        {hasArticle24Rows ? (
+          <p className="article-24-footnote" id="article-24-footnote">
+            * Under Articles 18 and 24 of the US-France tax treaty, qualifying US retirement and Social Security
+            income is taxable only in the United States. France may include it when determining the effective tax
+            rate applied to other France-taxable income, but provides a credit equal to the French tax attributable
+            to the qualifying US income.
+          </p>
+        ) : null}
         <details className="detail-panel collapsible-panel">
           <summary id="social-charges-heading">Would you like to see the breakdown of the French social charges?</summary>
           <div className="social-charge-table" role="table" aria-label="French social charges by income type">
