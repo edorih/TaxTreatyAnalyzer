@@ -563,6 +563,9 @@ function ModuleLandingPage({
         <ShieldCheck size={20} aria-hidden="true" />
         <span>Tax Optimizer</span>
       </button>
+      <p className="module-footnote">
+        This application is intended for US citizens considering a move abroad.
+      </p>
     </div>
   );
 }

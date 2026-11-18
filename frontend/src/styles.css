@@ -135,6 +135,14 @@ select:focus-visible {
   font-weight: 700;
 }
 
+.module-footnote {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .landing-layout {
   display: grid;
   grid-template-columns: minmax(360px, 1.1fr) minmax(320px, 0.75fr);
